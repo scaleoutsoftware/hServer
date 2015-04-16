@@ -1,0 +1,1 @@
+Container directory for the SOSS JNC jar, to be copied from the product installation directory.

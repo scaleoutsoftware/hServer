@@ -1,0 +1,1 @@
+Container directory for Apache Hadoop version 1.2.1's third-party JARs.

@@ -1,0 +1,1 @@
+Container directory for ScaleOut hServer's build output with support for Hortonwork's Data Platform version 2.1 (with YARN support).

@@ -1,0 +1,1 @@
+Container directory for ScaleOut hServer's build output with support for Apache Hadoop version 2.4.1 (with YARN support). 

@@ -1,0 +1,243 @@
+/*
+ Copyright (c) 2015 by ScaleOut Software, Inc.
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+ http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+*/
+package com.scaleoutsoftware.soss.hserver;
+
+
+import com.scaleoutsoftware.soss.client.da.StateServerException;
+import com.scaleoutsoftware.soss.hserver.interop.BucketStore;
+import com.scaleoutsoftware.soss.hserver.interop.BucketStoreFactory;
+import com.scaleoutsoftware.soss.hserver.interop.Image;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.mapreduce.InputFormat;
+import org.apache.hadoop.mapreduce.InputSplit;
+import org.apache.hadoop.mapreduce.JobContext;
+
+import java.io.IOException;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * This class represents an input for the specific map/reduce job which is cached in the StateServer. Job input is a set of
+ * {@link InputSplit}'s each of which is transformed into the set of key-value pairs by the record reader.
+ * The key-value objects from a single split form a "bucket" with a unique ID, which is used to refer to this set
+ * of KV-pairs. The bucket is guaranteed to be local to the specific host, to minimize network IO while replaying the
+ * job.
+ * Each image has a unique ID string used to identify the image object in the StateServer store. ID string is
+ * generated based on the job configuration each time the job is submitted and is used to determine whether there is an
+ * existing image to be replayed or the new image should be created. The ID string generation algorithms are
+ * implemented by Image subclasses.
+ * When the new image is created, the input splits from the corresponding input format are wrapped with
+ * {@link ImageInputSplit}'s and saved in the image object. At the recording stage the image object is updated with
+ * the IDs of the buckets used to store the chunkKeys originating from the individual splits.
+ */
+abstract class GridImage extends Image<JobContext, InputFormat, InputSplit> implements Serializable {
+    private static final long serialVersionUID = 1L;
+
+    private static final Log LOG = LogFactory.getLog(Image.class);
+
+    String imageIdString = "__NULL";
+
+
+    /**
+     * Checks whether image is current and updates it if necessary. It returns <code>true</code> if the image is current
+     * and ready to be used after this call, and <code>false</code> if new image should be created to overwrite this one.
+     *
+     * @param context job context
+     * @param format  input format
+     * @return <code>true</code> if the image is current
+     */
+    public abstract boolean checkCurrent(JobContext context, InputFormat format) throws StateServerException, IOException, InterruptedException;
+
+    /**
+     * This method is run each time the image is constructed or retrieved. Its main purpose is to compute
+     * the image ID string. After the string is computed it may turn out that the image with such
+     * ID string already exists in the store, and we use it instead of this instance. Because of that fact
+     * the only this method should initialize the image object only to the extent required to generate
+     * the ID string.
+     *
+     * @param context job context
+     * @param format  input format
+     */
+    public abstract void initializeImageIDString(JobContext context, InputFormat format);
+
+    /**
+     * Initializes the image split list by calling the underlying input format to get input splits and wrapping each
+     * of them in the {@link ImageInputSplit}.
+     *
+     * @param context job context
+     * @param format  input format
+     */
+    @SuppressWarnings("unchecked")
+    protected void calculateSplits(JobContext context, InputFormat format) throws IOException, InterruptedException {
+
+        List<InputSplit> originalSplits = format.getSplits(context);
+        splits = new ArrayList<InputSplit>(originalSplits.size());
+
+        for (int i = 0; i < originalSplits.size(); i++) {
+            splits.add(new ImageInputSplit(originalSplits.get(i), getImageIdString(), creationTimestamp, i));
+        }
+    }
+
+    /**
+     * Gets the image ID string.
+     *
+     * @return image ID string
+     */
+    public String getImageIdString() {
+        return imageIdString;
+    }
+
+    /**
+     * Get the set of splits contained in that image. The resulting lists contains {@link ImageInputSplit}, which
+     * are the wrappers for the original input splits generated by the job"s input format.
+     *
+     * @return split list
+     */
+    public List<InputSplit> getSplits() {
+        return splits;
+    }
+
+    /**
+     * Initializes a new image or reads the existing one from the StateServer store.
+     *
+     * @param context     job context
+     * @param inputFormat input format
+     * @return image object
+     */
+    GridImage readOrCreateImage(JobContext context, InputFormat inputFormat) throws StateServerException, IOException, InterruptedException, ClassNotFoundException {
+        initializeImageIDString(context, inputFormat);
+        BucketStore bucketStore = BucketStoreFactory.getBucketStore(imageIdString);
+        Image saved = bucketStore.getImage(false);
+        //The image was already saved in the named cache
+        if (saved != null) {
+            if (saved.checkCurrent(context, inputFormat)) {
+                return (GridImage)saved;
+            } else {
+                bucketStore.removeImage();
+            }
+        }
+        //At this point we know that image is not cached yet or out of date, so we save it.
+        creationTimestamp = System.currentTimeMillis();
+        calculateSplits(context, inputFormat);
+        bucketStore.writeImage(this, false);
+        return this;
+    }
+
+    /**
+     * Reads the image and updates one of the splits. This is used to check-in the updated split object before and after
+     * the recording phase. The updated split contains the ID of the bucket with key-value objects.
+     *
+     * @param split          the split to be recorded. It contains the reference to the image hosting this split.
+     * @param initialCheckIn if true, the split is being checked in before recording
+     * @param taskId         ID of the task which corresponds to that split
+     */
+    private static boolean inputSplitCheckIn(ImageInputSplit split, boolean initialCheckIn, String taskId) throws StateServerException, ClassNotFoundException, IOException {
+        BucketStore bucketStore = BucketStoreFactory.getBucketStore(split.getImageIdString());
+
+        try {
+            Image image = bucketStore.getImage(true);
+            if (image == null || image.getSplits() == null) {
+                bucketStore.unlockImage();
+                throw new IOException("Image is inconsistent: no image " + image);
+            } else {
+                if (image.getCreationTimestamp() != split.getImageCreationTimestamp()) {
+                    bucketStore.unlockImage();
+                    throw new IOException("Image is inconsistent: image was overwritten");
+                }
+                int index = split.getSplitIndex();
+
+                ImageInputSplit existingSplit = (ImageInputSplit) image.getSplits().get(index);
+
+                //The splits do not implement equals(), but we can at least check that the sizes match
+                try {
+
+                    if (existingSplit.getLength() != split.getLength()) {
+                        bucketStore.unlockImage();
+                        throw new IOException("Image is inconsistent: no such split");
+                    }
+                } catch (InterruptedException e) {
+                    bucketStore.unlockImage();
+                    throw new IOException("Cannot compare split length", e);
+                }
+
+                if (initialCheckIn & !existingSplit.getBucketId().isDummyId() & taskId != null) {
+                    if (existingSplit.isRecorded()) {
+                        //Someone already recorded this split, exit
+                        bucketStore.unlockImage();
+                        return false;
+
+                    } else {
+                        //Someone started to record this split. It is either the
+                        //failed task from the previous job or the task that is still running (sometimes scheduler starts map
+                        //tasks on the same split concurrently). We check task id to distinguish between two.
+                        if (taskId != null && taskId.equals(existingSplit.getTaskId())) {
+                            //We are in another attempt of the same task. We assume that the other attempt will
+                            //finish successfully. If this is not true, whole job have to fail.
+                            LOG.warn("Another task is attempting to record split: " + split);
+                            bucketStore.unlockImage();
+                            return false;
+                        } else {
+                            //We are going to re-record this split, cleanup bucket first.
+                            LOG.warn("Attempting to re-record input split: " + split);
+                            bucketStore.clearBucket(existingSplit.getBucketId());
+                        }
+                    }
+                }
+                if (!initialCheckIn && existingSplit.isRecorded()) {
+                    //This should not happen, task should've been aborted at initial check in.
+                    bucketStore.unlockImage();
+                    throw new IOException("Split was already recorded");
+                }
+
+                if (initialCheckIn) {
+                    split.setTaskId(taskId);
+                }
+
+                image.getSplits().set(index, split);
+                bucketStore.writeImage(image, true);
+                return true;
+            }
+        } catch (StateServerException e) {
+            //Try to unlock the image before giving up.
+            bucketStore.unlockImage();
+            throw e;
+        }
+    }
+
+    /**
+     * Checks in the split before recording.
+     *
+     * @param split  the split to be recorded
+     * @param taskId ID of the task which corresponds to that split
+     * @return true if record reader should go ahead, false if it should abort that task, because this split is being recorded elsewhere
+     */
+    static boolean inputSplitCheckInBeforeRecording(ImageInputSplit split, String taskId) throws StateServerException, ClassNotFoundException, IOException {
+        return inputSplitCheckIn(split, true, taskId);
+    }
+
+    /**
+     * Checks in split after it is recorded.
+     *
+     * @param split recorded split
+     */
+    static void inputSplitCheckInAfterRecording(ImageInputSplit split) throws StateServerException, ClassNotFoundException, IOException {
+        inputSplitCheckIn(split, false, null);
+    }
+
+
+}

@@ -1,0 +1,15 @@
+<html>
+<body>
+<p>
+This package contains classes that are used to run MapReduce jobs with ScaleOut hServer.
+{@link com.scaleoutsoftware.soss.hserver.HServerJob} is the entry point for the ScaleOut hServer
+infrastructure and it should be used instead of {@link org.apache.hadoop.mapreduce.Job} to configure
+the MapReduce job.
+</p>
+<p>
+{@link com.scaleoutsoftware.soss.hserver.NamedMapInputFormat}, {@link com.scaleoutsoftware.soss.hserver.NamedCacheInputFormat},
+and {@link com.scaleoutsoftware.soss.hserver.GridOutputFormat} are the input and output formats for the data, which is stored as
+keys and values in the in-memory data grid.
+</p>
+</body>
+</html>

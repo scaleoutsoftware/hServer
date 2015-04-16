@@ -1,0 +1,677 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+   <head>
+      
+      <meta http-equiv="X-UA-Compatible" content="IE=7" />
+      
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+      
+      <title>ScaleOut hServer Java Programmer's Guide</title>
+      <meta name="generator" content="DocBook XSL Stylesheets V1.77.1" />
+      <link rel="home" href="index.html" title="ScaleOut hServer Java Programmer's Guide" />
+      <link rel="next" href="_running_hadoop_mapreduce_jobs_with_scaleout_hserver.html" title="Running Hadoop MapReduce jobs with ScaleOut hServer" /><script type="text/javascript">
+            //The id for tree cookie
+            var treeCookieId = "treeview-1883";
+            var language = "en";
+            var w = new Object();
+            //Localization
+            txt_filesfound = 'Results';
+            txt_enter_at_least_1_char = "You must enter at least one character.";
+            txt_browser_not_supported = "JavaScript is disabled on your browser. Please enable JavaScript to enjoy all the features of this site.";
+            txt_please_wait = "Please wait. Search in progress...";
+            txt_results_for = "Results for: ";
+        </script><link rel="shortcut icon" href="../favicon.ico" type="image/x-icon" />
+      <link rel="stylesheet" type="text/css" href="../common/css/positioning.css" />
+      <link rel="stylesheet" type="text/css" href="../common/jquery/theme-redmond/jquery-ui-1.8.2.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../common/jquery/treeview/jquery.treeview.css" /><style type="text/css">
+noscript{
+      font-weight:bold;
+}
+input {
+    margin-bottom: 5px;
+    margin-top: 2px;
+}
+.folder {
+    display: block;
+    height: 22px;
+    padding-left: 20px;
+    background: transparent url(../common/jquery/treeview/images/folder.gif) 0 0px no-repeat;
+}
+span.contentsTab {
+    padding-left: 20px;
+    background: url(../common/images/toc-icon.png) no-repeat 0 center;
+}
+span.searchTab {
+    padding-left: 20px;
+    background: url(../common/images/search-icon.png) no-repeat 0 center;
+}
+
+/* Overide jquery treeview's defaults for ul. */
+.treeview ul {
+    background-color: transparent;
+    margin-top: 4px;
+}		
+#webhelp-currentid {
+    background-color: #D8D8D8 !important;
+}
+.treeview .hover { color: black; }
+.filetree li span a { text-decoration: none; font-size: 12px; color: #517291; }
+
+/* Override jquery-ui's default css customizations. These are supposed to take precedence over those.*/
+.ui-widget-content {
+    border: 0px; 
+    background: none; 
+    color: none;     
+}
+.ui-widget-header {
+    color: #e9e8e9;
+    border-left: 1px solid #e5e5e5;
+    border-right: 1px solid #e5e5e5;
+    border-bottom: 1px solid #bbc4c5;
+    border-top: 4px solid #e5e5e5;
+    border: medium none;
+    background: #F4F4F4; /* old browsers */
+    background: -moz-linear-gradient(top, #F4F4F4 0%, #E6E4E5 100%); /* firefox */
+    background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#F4F4F4), color-stop(100%,#E6E4E5)); /* webkit */    
+    font-weight: none;
+}
+.ui-widget-header a { color: none; }
+.ui-state-default, .ui-widget-content .ui-state-default, .ui-widget-header .ui-state-default { 
+border: none; background: none; font-weight: none; color: none; }
+.ui-state-default a, .ui-state-default a:link, .ui-state-default a:visited { color: black; text-decoration: none; }
+.ui-state-hover, .ui-widget-content .ui-state-hover, .ui-widget-header .ui-state-hover, .ui-state-focus, .ui-widget-content .ui-state-focus, .ui-widget-header .ui-state-focus { border: none; background: none; font-weight: none; color: none; }
+
+.ui-state-active, .ui-widget-content .ui-state-active, .ui-widget-header .ui-state-active { border: none; background: none; font-weight: none; color: none; }
+.ui-state-active a, .ui-state-active a:link, .ui-state-active a:visited { 
+    color: black; text-decoration: none; 	
+    background: #C6C6C6; /* old browsers */
+    background: -moz-linear-gradient(top, #C6C6C6 0%, #D8D8D8 100%); /* firefox */
+    background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#C6C6C6), color-stop(100%,#D8D8D8)); /* webkit */
+    -webkit-border-radius:15px; -moz-border-radius:10px;
+    border: 1px solid #f1f1f1;
+}    
+.ui-corner-all { border-radius: 0 0 0 0; }
+
+.ui-tabs { padding: .2em;}
+.ui-tabs .ui-tabs-nav li { top: 0px; margin: -2px 0 1px; text-transform: uppercase; font-size: 10.5px;}
+.ui-tabs .ui-tabs-nav li a { padding: .25em 2em .25em 1em; margin: .5em; text-shadow: 0 1px 0 rgba(255,255,255,.5); }
+
+
+        </style><script type="text/javascript" src="../common/browserDetect.js">
+         <!----></script><script type="text/javascript" src="../common/jquery/jquery-1.4.2.min.js">
+         <!----></script><script type="text/javascript" src="../common/jquery/jquery-ui-1.8.2.custom.min.js">
+         <!----></script><script type="text/javascript" src="../common/jquery/jquery.cookie.js">
+         <!----></script><script type="text/javascript" src="../common/jquery/treeview/jquery.treeview.min.js">
+         <!----></script><script type="text/javascript" src="search/l10n.js">
+         <!----></script><script type="text/javascript" src="search/htmlFileInfoList.js">
+         <!----></script><script type="text/javascript" src="search/nwSearchFnt.js">
+         <!----></script><script type="text/javascript" src="search/stemmers/en_stemmer.js">
+         <!--//make this scalable to other languages as well.--></script><script type="text/javascript" src="search/index-1.js">
+         <!----></script><script type="text/javascript" src="search/index-2.js">
+         <!----></script><script type="text/javascript" src="search/index-3.js">
+         <!----></script>
+      <!--[if IE]>
+<link rel="stylesheet" type="text/css" href="../common/css/ie.css"/>
+<![endif]--><style xmlns="" type="text/css">
+.programlisting, .screen
+{
+  border: 1px solid silver;
+  background: #f4f4f4;
+  margin: 0.5em 10% 0.5em 0;
+  padding: 0.5em 1em;
+  font-family: Consolas,Menlo,'Deja Vu Sans Mono','Bitstream Vera Sans Mono',monospace;
+  line-height: 1.5em;
+}
+
+
+
+#content h1 { font-size: 240%; }
+#content h2 { font-size: 180%; }
+#content h3 { font-size: 150%; }
+#content h4 { font-size: 130%; }
+#content h5 { font-size: 115%; }
+#content h6 { font-size: 100%; }
+
+#content h1, #content h2, #content h3, #content h4, #content h5, #content h6,
+div.title, caption.title,
+thead, p.table.header,
+#toctitle,
+#author, #revnumber, #revdate, #revremark,
+#footer {
+  font-family: Cambria, Georgia, Garmond, serif;
+  font-weight: normal;
+  border-bottom-width: 0;
+  color: #3E4349;
+}
+
+#content h5
+{
+  font-family: Verdana, Geneva, sans-serif;
+  font-style: italic;
+  font-weight: normal;
+  font-size: 10pt;
+  border-bottom-width: 0;
+  color: #3E4349;
+}
+
+#content h6
+{
+  font-family: Verdana, Geneva, sans-serif;
+  font-weight: bold;
+  font-size: 8pt;
+  border-bottom-width: 0;
+  color: #3E4349;
+}
+
+/* note header */
+#content th {
+  line-height: 1.2;
+  font-family: Cambria, Georgia, Garmond, serif;
+}
+
+#content
+{
+  padding-left: 15px;
+}
+
+#content p
+{
+  line-height: 1.4em;
+}
+
+#content a { color: #004B6B; text-decoration: none; border-bottom: 1px dotted #004B6B !important; }
+#content a:visited { color: #615FA0; border-bottom: 1px dotted #615FA0 !important; }
+#content a:hover { color: #6D4100; border-bottom: 1px solid #6D4100 !important; }
+
+div.note a, div.caution a, div.important a, div.tip a, div.warning a {
+    color: #004B6B !important; 
+    text-decoration: none !important; 
+    border-bottom: 1px dotted #004B6B !important;
+}
+
+
+.filetree li span a
+{
+  color: black;
+}
+
+#header h1
+{
+  margin-left: 150px;
+  font-family: Cambria, Georgia, Garmond, serif;
+  font-size: 180%;
+}
+
+#navheader
+{
+  background-color: white;
+}
+
+#content div.informaltable table {
+    border-collapse: collapse;
+    border-top: 3px solid #527bbd;
+    border-bottom: 3px solid #527bbd;
+    border-left: 3px solid #527bbd;
+    border-right: 3px solid #527bbd;
+}
+
+
+
+/*
+  Table styling does not work because of overriding attributes in
+  generated HTML.
+*/
+div.table table,
+div.informaltable table
+{
+    margin-left: 0;
+    margin-right: 5%;
+    margin-bottom: 0.8em;
+}
+div.informaltable table
+{
+    margin-top: 0.4em
+}
+div.table thead,
+div.table tfoot,
+div.table tbody,
+div.informaltable thead,
+div.informaltable tfoot,
+div.informaltable tbody
+{
+    /* No effect in IE6. */
+    border-top: 3px solid #527bbd;
+    border-bottom: 3px solid #527bbd;
+}
+div.table thead, div.table tfoot,
+#content div.informaltable thead, div.informaltable tfoot
+{
+    font-weight: bold;
+}
+
+#content table th {
+  background: white;
+  color: black;
+  line-height: 1.2;
+  font-size: 16px;
+}
+
+#content table td {
+  border-right: 1px solid #527bbd;
+  border-bottom: 1px solid #527bbd;
+}
+
+.caution p, .important p, .tip p, .warning p, .note p
+{
+  margin-bottom: 0;
+  margin-top: 0;
+}
+
+dt span.term {
+  font-style: normal;
+  color: navy;
+}
+
+tt.literal, code.literal {
+  color: navy;
+}
+
+body pre {
+  margin: 0.5em 10% 0.5em 1em;
+  line-height: 1.0;
+  color: navy;
+}
+
+/* Further tweaks to note styles are because of weird IE rendering */
+#content .caution table, #content .important table, #content .tip table, #content .warning table, #content .note table {
+  margin-bottom: 10px;
+  border: none;
+  
+}
+
+#content #content .caution th, #content .important th, #content .tip th, #content .warning th, #content .note th {
+  color: black;
+  background: white;
+  
+}
+
+#content #content .caution td, #content .important td, #content .tip td, #content .warning td, #content .note td {
+  border: none;
+  
+}
+
+#content div.variablelist dd p {
+  margin-top: 0;
+}
+
+#content dt span.term {
+  font-style: normal;
+  color: navy;
+}
+
+#content dt {
+  margin-top: 0.5em;
+}
+
+#content ul, li, body dir, body menu {
+  line-height: 1.4;
+}
+
+body li p {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+div.itemizedlist li, div.orderedlist li {
+  margin-left: -0.8em;
+  margin-top: 0.5em;
+}
+
+</style></head>
+   <body>
+      <div id="header"><a xmlns="" target="_blank" href="http://scaleoutsoftware.com/"><img style="margin-right: 2px; height: 59px; padding-right: 25px; padding-top: 8px" align="right" src="../common/images/logo.png" alt="ScaleOut Software Documentation" /></a><h1>ScaleOut hServer Java Programmer's Guide<br /> 
+         </h1>
+         <div id="navheader">
+            <!---->
+            <table class="navLinks">
+               <tr>
+                  <td><a id="showHideButton" href="javascript:showHideToc();" class="pointLeft" tabindex="5" title="Hide TOC tree">Sidebar
+                                                    </a></td>
+                  <td> 
+                                                         |
+                                                         <a accesskey="n" class="navLinkNext" tabindex="5" href="_running_hadoop_mapreduce_jobs_with_scaleout_hserver.html">Next</a></td>
+               </tr>
+            </table>
+         </div>
+      </div>
+      <div id="content">
+         <noscript>JavaScript is disabled on your browser. Please enable JavaScript to enjoy all the features of this site.</noscript>
+         <!---->
+         <div xml:lang="en" class="article">
+            <div xmlns="" class="titlepage">
+               <div>
+                  <div>
+                     <h2 xmlns="http://www.w3.org/1999/xhtml" class="title"><a id="d5e1"></a>ScaleOut hServer Java Programmer's Guide
+                     </h2>
+                  </div>
+               </div>
+               <hr />
+            </div>
+            
+            
+            <div class="informalfigure">
+               
+               <div class="mediaobject" align="center"><img src="images/fig1_hadoop_hserver_hdfs.png" align="middle" width="200" alt="images/fig1_hadoop_hserver_hdfs.png" /></div>
+               
+            </div>
+            
+            <p>The ScaleOut hServer® Java API library integrates a Hadoop MapReduce execution engine with ScaleOut hServer’s in-memory data
+               grid (IMDG). This open source library <a href="#ftn.d5e11" class="footnote"><sup class="footnote"><a id="d5e11"></a>[1]</sup></a> consists of several components: a Hadoop MapReduce execution engine, which runs MapReduce jobs in memory without using Hadoop
+               job trackers or task trackers, and four I/O components to pass data between the IMDG and a MapReduce job. The I/O components
+               include the Named Map Input Format, the Named Cache Input Format, and the Grid Output Format, which together allow MapReduce
+               applications to use the IMDG as a data source and/or result storage for MapReduce jobs. In addition, the Dataset Input Format
+               accelerates the performance of MapReduce jobs by caching HDFS datasets in the IMDG.
+            </p>
+            
+            <p>Using ScaleOut hServer, developers can write and run standard Hadoop MapReduce applications in Java, and these applications
+               can be executed stand-alone by ScaleOut hServer’s execution engine. The Apache Hadoop distribution does <span class="emphasis"><em>not</em></span> need to be installed to run MapReduce programs; optionally, it can be installed to make use of other Hadoop components, such
+               as the Hadoop Distributed File System (HDFS). (If HDFS is used to store data sets analyzed by MapReduce, ScaleOut hServer
+               should be installed on the same cluster of servers to minimize network overhead.) ScaleOut hServer supports standard Apache
+               Hadoop as well as third party distributions by Hortonworks and Cloudera. ScaleOut hServer’s execution engine offers very fast
+               job scheduling (measured in milliseconds), highly optimized data combining and shuffling, in-memory storage of intermediate
+               key/value pairs within the IMDG, optional use of sorting, and fast, pipelined access to in-memory data within the IMDG for
+               analysis. In addition, ScaleOut hServer automatically sets the number of splits, partitions, and slots for IMDG-based data.
+               Lastly, the performance of the Hadoop MapReduce engine automatically scales as servers are added to the cluster, and IMDG-based
+               data is automatically redistributed across the cluster as needed.
+            </p>
+            
+            <p>Developers can use ScaleOut hServer’s Java APIs <a href="#ftn.d5e17" class="footnote"><sup class="footnote"><a id="d5e17"></a>[2]</sup></a> to create, read, update, and delete objects within the IMDG. This enables MapReduce applications to input "live" data sets
+               which are stored and updated within the IMDG. Complex IMDG-based objects can be stored within a <span class="emphasis"><em>named cache</em></span>, which provides comprehensive semantics, such as object timeouts, dependency relationships, pessimistic locking, and access
+               by remote IMDGs. These objects are input to MapReduce applications using the <span class="emphasis"><em>Named Cache</em></span> input format. Alternatively, large populations of small key/value pairs can be efficiently stored within a <span class="emphasis"><em>named map</em></span>, which provides highly efficient memory usage and streamlined semantics following the Java concurrent map model. These objects
+               can be input to MapReduce applications using the <span class="emphasis"><em>Named Map</em></span> input format. The <span class="emphasis"><em>Grid</em></span> output format can be used to output objects from MapReduce applications to a named cache or a named map.
+            </p>
+            
+            <p>Note that some advanced features of the Java APIs, such as event handling, parallel query and parallel method invocation are
+               only available under a full ScaleOut StateServer® or ScaleOut Analytics Server® license.
+            </p>
+            
+            <p>This programming guide is intended to be a supplement to the Java API documentation and the ScaleOut StateServer (SOSS) Help
+               File included with ScaleOut hServer. It focuses on the Java components used with Hadoop MapReduce applications.
+            </p>
+            
+            <div class="section">
+               <div xmlns="" class="titlepage">
+                  <div>
+                     <div>
+                        <h2 xmlns="http://www.w3.org/1999/xhtml" class="title" style="clear: both"><a id="install"></a>Installation of the IMDG
+                        </h2>
+                     </div>
+                  </div>
+               </div>
+               
+               
+               <p>Please refer to the ScaleOut StateServer help file for instructions on installing the IMDG service on a cluster of servers.
+                  ScaleOut hServer installs the ScaleOut StateServer grid service on all servers. When a MapReduce job is started, ScaleOut
+                  hServer automatically starts Java Virtual Machines (JVMs) on all servers (called an <span class="emphasis"><em>invocation grid</em></span>) to implement its scalable Hadoop MapReduce engine.
+               </p>
+               
+               <div class="informalfigure">
+                  
+                  <div class="mediaobject" align="center"><img src="images/fig2_hserver_worker_node.png" align="middle" alt="images/fig2_hserver_worker_node.png" /></div>
+                  
+               </div>
+               
+               <p>The following "quick start" instructions for installing the IMDG on Linux will get you started. For each server in the cluster:</p>
+               
+               <div class="orderedlist">
+                  <ol class="orderedlist" type="1">
+                     <li class="listitem">
+                        
+                        Download the RPM file from the ScaleOut Software web site.
+                        
+                        
+                     </li>
+                     <li class="listitem">
+                        
+                        Install the RPM: <code class="literal">sudo rpm -ivh soss-5.1.30-230.el6.x86_64.rpm</code> (It will be installed into <span class="emphasis"><em>/usr/local/soss5</em></span>.)
+                        
+                        
+                     </li>
+                     <li class="listitem">
+                        
+                        Verify the daemon is running: <code class="literal">soss query</code>
+                        
+                        
+                     </li>
+                     <li class="listitem">
+                        
+                        Configure the network settings to bind the grid service to the desired network, for example: <code class="literal">soss set net_interface=10.0.3.0 subnet_mask=255.255.255.0</code> (You also can edit the <span class="emphasis"><em>soss_params.txt</em></span> file in the installation directory and restart the daemon.)
+                        
+                        
+                     </li>
+                     <li class="listitem">
+                        
+                        Join this server to the cluster of IMDG servers: <code class="literal">soss join</code>
+                        
+                        
+                     </li>
+                  </ol>
+               </div>
+               
+               <p>To install ScaleOut StateServer on Windows, download the appropriate installer from the the ScaleOut Software web site and
+                  follow the installation instructions. The server is installed as a Windows service and can be configured by using the SOSS
+                  Management Console.
+               </p>
+               
+               <p>The IMDG servers will automatically discover each other and balance the storage workload among all servers.</p>
+               
+               <p>Sufficient physical memory should be provisioned for the IMDG to hold all data set objects and their associated replicas following
+                  the best practices described in the SOSS Help File. By default, named cache objects have one replica on a different server
+                  to ensure high availability in case a server fails. For example, if a 100GB data set is to be stored in the IMDG, this will
+                  require approximately 200GB of aggregate memory for the data set and its replicas (using the default parameters). If the cluster
+                  has four servers, this will require 50GB per server. Note that additional memory is required for object metadata and other
+                  data structures used by the IMDG. To maximize the performance of MapReduce applications, named map objects and intermediate
+                  key/value pairs do not use replicas; replicas optionally can be enabled for named maps (described below).
+               </p>
+               
+               <p>For MapReduce applications which input data from HDFS and store results in HDFS, the IMDG’s memory is only used to store intermediate
+                  results sent from the mappers to the reducers. If multiple grid servers are added to the cluster, their memory automatically
+                  is combined to store very large sets of intermediate results. Replicas are not used for intermediate results, and these results
+                  are cleared when a MapReduce job completes.
+               </p>
+               
+               <p>The Java API library for ScaleOut hServer can be found in <span class="emphasis"><em>soss-hserver-5.2-*.jar</em></span>, and the Java API library for creating, reading, updating, and deleting objects can be found in <span class="emphasis"><em>soss-jnc-5.2.jar</em></span>.
+               </p>
+               
+               <p>These jars and their dependencies are located in the <span class="emphasis"><em>java_api</em></span> subdirectory of the ScaleOut StateServer installation directory.
+               </p>
+               
+               <div class="section">
+                  <div xmlns="" class="titlepage">
+                     <div>
+                        <div>
+                           <h3 xmlns="http://www.w3.org/1999/xhtml" class="title"><a id="_support_for_multiple_hadoop_distributions"></a>Support for Multiple Hadoop Distributions
+                           </h3>
+                        </div>
+                     </div>
+                  </div>
+                  
+                  
+                  <p>ScaleOut hServer runs with several Hadoop environments, including those configured to run MapReduce on YARN, and it can serve
+                     as a MapReduce execution engine for Apache Hive (see <a class="link" href="hive.html" title="Running Apache Hive on hServer">configuration instructions</a>).
+                  </p>
+                  
+                  <p>If the MapReduce job running in ScaleOut hServer uses HDFS as the data input and/or output, it is necessary for the set of
+                     library JARs on the client classpath to match the distribution of Hadoop used to run the HDFS data node(s) and name node(s).
+                     Apache Hadoop 2.4.1 distribution-specific JARs are located in the ScaleOut hServer installation directory under <code class="literal">java_api/hslib/hadoop-2.4.1</code>. Additional distribution-specific JARs can be downloaded from the website at: <a class="ulink" href="http://www.scaleoutsoftware.com/support/support-downloads/" target="_top">http://www.scaleoutsoftware.com/support/support-downloads/</a>. For convenience, a shell script to automatically download the JARs from the website is located in the ScaleOut hServer installation
+                     directory under <code class="literal">java_api/hslib/</code> (please see the included README for usage instructions). After downloading the JARs, move them to the installation folder
+                     under <code class="literal">java_api/hslib/</code>. To run a ScaleOut hServer MapReduce job, the libraries in <code class="literal">java_api/*</code> and <code class="literal">java_api/lib/*</code>, and the distribution specific JARs should be included in the classpath on the invoking client.
+                  </p>
+                  
+                  <p>ScaleOut hServer ships with support for the following Hadoop distributions:</p>
+                  
+                  <div class="informaltable">
+                     
+                     
+                     
+                     
+                     <table border="1" width="50%">
+                        <colgroup>
+                           <col class="col_1" />
+                           <col class="col_2" />
+                        </colgroup>
+                        <thead>
+                           <tr>
+                              <th align="left" valign="top"> Distribution        </th>
+                              <th align="left" valign="top"> Library path for <span class="emphasis"><em>java_api</em></span> (<span class="emphasis"><em>JavaApi</em></span> on Windows)
+                              </th>
+                           </tr>
+                        </thead>
+                        <tbody>
+                           <tr>
+                              <td align="left" valign="top"><pre class="literallayout">Apache Hadoop 1.2.1</pre></td>
+                              <td align="left" valign="top"><pre class="literallayout">hslib/hadoop-1.2.1</pre></td>
+                           </tr>
+                           <tr>
+                              <td align="left" valign="top"><pre class="literallayout">Apache Hadoop 2.4.1</pre></td>
+                              <td align="left" valign="top"><pre class="literallayout">hslib/hadoop-2.4.1</pre></td>
+                           </tr>
+                           <tr>
+                              <td align="left" valign="top"><pre class="literallayout">CDH 4.4.0</pre></td>
+                              <td align="left" valign="top"><pre class="literallayout">hslib/cdh4.4.0</pre></td>
+                           </tr>
+                           <tr>
+                              <td align="left" valign="top"><pre class="literallayout">CDH 5 (MR1)</pre></td>
+                              <td align="left" valign="top"><pre class="literallayout">hslib/cdh5.0.2</pre></td>
+                           </tr>
+                           <tr>
+                              <td align="left" valign="top"><pre class="literallayout">CDH 5 (YARN)</pre></td>
+                              <td align="left" valign="top"><pre class="literallayout">hslib/cdh5.0.2-yarn</pre></td>
+                           </tr>
+                           <tr>
+                              <td align="left" valign="top"><pre class="literallayout">CDH 5.2 (MR1)</pre></td>
+                              <td align="left" valign="top"><pre class="literallayout">hslib/cdh5.2.1</pre></td>
+                           </tr>
+                           <tr>
+                              <td align="left" valign="top"><pre class="literallayout">CDH 5.2 (YARN)</pre></td>
+                              <td align="left" valign="top"><pre class="literallayout">hslib/cdh5.2.1-yarn</pre></td>
+                           </tr>
+                           <tr>
+                              <td align="left" valign="top"><pre class="literallayout">HDP 2.1 (YARN)</pre></td>
+                              <td align="left" valign="top"><pre class="literallayout">hslib/hdp2.1-yarn</pre></td>
+                           </tr>
+                           <tr>
+                              <td align="left" valign="top"><pre class="literallayout">HDP 2.2 (YARN)</pre></td>
+                              <td align="left" valign="top"><pre class="literallayout">hslib/hdp2.2-yarn</pre></td>
+                           </tr>
+                           <tr>
+                              <td align="left" valign="top"><pre class="literallayout">IBM BigInsights 3.0</pre></td>
+                              <td align="left" valign="top"><pre class="literallayout">hslib/ibm-bi-3.0.0</pre></td>
+                           </tr>
+                        </tbody>
+                     </table>
+                     
+                  </div>
+                  
+               </div>
+               
+            </div>
+            
+            
+            
+            
+            
+            
+            <div class="footnotes"><br /><hr style="width:100; align:left;" />
+               <div id="ftn.d5e11" class="footnote">
+                  <p><a href="#d5e11" class="simpara"><sup class="simpara">[1] </sup></a>The open source ScaleOut hServer Java API library (soss-hserver-5.2-*.jar) is licensed under the Apache License, Version 2.0
+                     (<a class="ulink" href="http://www.apache.org/licenses/LICENSE-2.0" target="_top">http://www.apache.org/licenses/LICENSE-2.0</a>).
+                  </p>
+               </div>
+               <div id="ftn.d5e17" class="footnote">
+                  <p><a href="#d5e17" class="simpara"><sup class="simpara">[2] </sup></a>The ScaleOut StateServer Java API library (soss-jnc-5.2.jar) is licensed under the ScaleOut StateServer End User License Agreement.
+                  </p>
+               </div>
+            </div>
+         </div><script type="text/javascript" src="../common/main.js">
+            <!----></script></div>
+      <div id="sidebar">
+         <div id="leftnavigation" style="padding-top:3px;">
+            <div id="tabs">
+               <ul>
+                  <li><a href="#treeDiv" style="outline:0;" tabindex="1"><span class="contentsTab">Contents</span></a></li>
+                  <li><a href="#searchDiv" style="outline:0;" tabindex="1" onclick="doSearch()"><span class="searchTab">Search</span></a></li>
+               </ul>
+               <div id="treeDiv"><img src="../common/images/loading.gif" alt="loading table of contents..." id="tocLoading" style="display:block;" /><div id="ulTreeDiv" style="display:none">
+                     <ul id="tree" class="filetree">
+                        <li><span class="file"><a href="index.html#install" tabindex="1">Installation of the IMDG</a></span><ul>
+                              <li><span class="file"><a href="index.html#_support_for_multiple_hadoop_distributions" tabindex="1">Support for Multiple Hadoop Distributions</a></span></li>
+                           </ul>
+                        </li>
+                        <li><span class="file"><a href="_running_hadoop_mapreduce_jobs_with_scaleout_hserver.html" tabindex="1">Running Hadoop MapReduce jobs with ScaleOut hServer</a></span><ul>
+                              <li><span class="file"><a href="_running_hadoop_mapreduce_jobs_with_scaleout_hserver.html#_requirements" tabindex="1">Requirements</a></span></li>
+                              <li><span class="file"><a href="_configuring_the_imdg_to_run_mapreduce_jobs.html" tabindex="1">Configuring the IMDG to run MapReduce jobs</a></span></li>
+                              <li><span class="file"><a href="_submitting_mapreduce_jobs_to_scaleout_hserver.html" tabindex="1">Submitting MapReduce jobs to ScaleOut hServer</a></span><ul>
+                                    <li><span class="file"><a href="_submitting_mapreduce_jobs_to_scaleout_hserver.html#run-cli-java" tabindex="1">Running MapReduce jobs from the command line (without a Hadoop distribution installed)</a></span></li>
+                                    <li><span class="file"><a href="_submitting_mapreduce_jobs_to_scaleout_hserver.html#run-cli-hadoop" tabindex="1">Running a MapReduce Job from the Hadoop Command Line</a></span></li>
+                                 </ul>
+                              </li>
+                              <li><span class="file"><a href="yarn.html" tabindex="1">Running existing Hadoop applications</a></span></li>
+                              <li><span class="file"><a href="_explicitly_specifying_the_invocation_grid.html" tabindex="1">Explicitly specifying the invocation grid</a></span></li>
+                              <li><span class="file"><a href="_passing_parameters_to_mappers_and_reducers.html" tabindex="1">Passing parameters to mappers and reducers</a></span></li>
+                              <li><span class="file"><a href="_single_result_optimization.html" tabindex="1">Single result optimization</a></span></li>
+                           </ul>
+                        </li>
+                        <li><span class="file"><a href="_storing_input_output_data_sets_in_the_imdg.html" tabindex="1">Storing input/output data sets in the IMDG</a></span><ul>
+                              <li><span class="file"><a href="_storing_input_output_data_sets_in_the_imdg.html#_namedmap_feature_overview" tabindex="1">NamedMap feature overview</a></span></li>
+                              <li><span class="file"><a href="_the_namedmapinputformat.html" tabindex="1">The NamedMapInputFormat</a></span></li>
+                              <li><span class="file"><a href="_the_namedcacheinputformat.html" tabindex="1">The NamedCacheInputFormat</a></span></li>
+                              <li><span class="file"><a href="_the_gridoutputformat.html" tabindex="1">The GridOutputFormat</a></span><ul>
+                                    <li><span class="file"><a href="_the_gridoutputformat.html#_using_a_namedmap_for_output" tabindex="1">Using a NamedMap for Output</a></span></li>
+                                    <li><span class="file"><a href="_the_gridoutputformat.html#_using_a_namedcache_for_output" tabindex="1">Using a NamedCache for Output</a></span></li>
+                                 </ul>
+                              </li>
+                              <li><span class="file"><a href="_using_the_imdg_8217_s_namedmap_namedcache_with_writables.html" tabindex="1">Using the IMDG’s NamedMap/NamedCache with Writables</a></span></li>
+                              <li><span class="file"><a href="_parallel_method_invocations_and_queries_on_the_namedmap.html" tabindex="1">Parallel Method Invocations and Queries on the NamedMap</a></span></li>
+                              <li><span class="file"><a href="_sample_program_modified_wordcount_example.html" tabindex="1">Sample Program: Modified WordCount example</a></span></li>
+                           </ul>
+                        </li>
+                        <li><span class="file"><a href="_using_scaleout_hserver_as_an_hdfs_cache.html" tabindex="1">Using ScaleOut hServer as an HDFS Cache</a></span><ul>
+                              <li><span class="file"><a href="_using_scaleout_hserver_as_an_hdfs_cache.html#_dataset_input_format" tabindex="1">Dataset Input Format</a></span></li>
+                              <li><span class="file"><a href="_handling_modifications_to_the_input_files.html" tabindex="1">Handling Modifications to the Input Files</a></span></li>
+                              <li><span class="file"><a href="_dataset_input_format_optimization_for_emphasis_text_emphasis_key_value_pairs_of_known_length.html" tabindex="1">Dataset Input Format Optimization for Text Key/Value Pairs of Known Length</a></span></li>
+                              <li><span class="file"><a href="_memory_usage.html" tabindex="1">Memory Usage</a></span></li>
+                              <li><span class="file"><a href="_managing_cached_data_sets_in_the_imdg.html" tabindex="1">Managing Cached Data Sets in the IMDG</a></span></li>
+                              <li><span class="file"><a href="_performance_optimizations_in_the_dataset_record_reader.html" tabindex="1">Performance Optimizations in the Dataset Record Reader</a></span></li>
+                           </ul>
+                        </li>
+                        <li><span class="file"><a href="hive.html" tabindex="1">Running Apache Hive on hServer</a></span></li>
+                        <li><span class="file"><a href="_querying_a_namedmap_with_apache_hive.html" tabindex="1">Querying a NamedMap with Apache Hive</a></span><ul>
+                              <li><span class="file"><a href="_querying_a_namedmap_with_apache_hive.html#_example_shopping_cart" tabindex="1">Example: Shopping Cart</a></span></li>
+                              <li><span class="file"><a href="customserializer.html" tabindex="1">Creating a table view of NamedMap with custom serialization</a></span></li>
+                           </ul>
+                        </li>
+                     </ul>
+                  </div>
+               </div>
+               <div id="searchDiv">
+                  <div id="search">
+                     <form onsubmit="Verifie(searchForm);return false" name="searchForm" class="searchForm">
+                        <fieldset class="searchFieldSet">
+                           <legend>Search</legend>
+                           <center><input id="textToSearch" name="textToSearch" type="search" class="searchText" tabindex="1" /> &nbsp; <input onclick="Verifie(searchForm)" type="button" class="searchButton" value="Go" id="doSearch" tabindex="1" /></center>
+                        </fieldset>
+                     </form>
+                  </div>
+                  <div id="searchResults">
+                     <center></center>
+                  </div>
+                  <p class="searchHighlight"><a href="#" onclick="toggleHighlight()">Search Highlighter (On/Off)</a></p>
+               </div>
+            </div>
+         </div>
+      </div>
+   </body>
+</html>

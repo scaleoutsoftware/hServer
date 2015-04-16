@@ -1,0 +1,1 @@
+Container directory for Cloudera's Distribution of Apache Hadoop version 5.0.2's third-party JARs (with YARN support).

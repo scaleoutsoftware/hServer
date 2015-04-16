@@ -1,0 +1,1 @@
+Container directory for IBM BigInsights third-party JARs.
