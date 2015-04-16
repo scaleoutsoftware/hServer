@@ -1,0 +1,1 @@
+Container directory for Cloudera's Distribution of Apache Hadoop version 4.4.0's third-party JARs.

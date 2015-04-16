@@ -1,0 +1,1150 @@
+﻿:numbered:
+
+ScaleOut hServer Java Programmer\'s Guide
+=========================================
+
+image::images/fig1_hadoop_hserver_hdfs.png[align="center",width=200,link="images/fig1_hadoop_hserver_hdfs.png"]
+
+The ScaleOut hServer(R) Java API library integrates a Hadoop MapReduce execution engine with ScaleOut hServer's in-memory data grid (IMDG). This open source library footnote:[The open source ScaleOut hServer Java API library (soss-hserver-5.2-*.jar) is licensed under the Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0).] consists of several components: a Hadoop MapReduce execution engine, which runs MapReduce jobs in memory without using Hadoop job trackers or task trackers, and four I/O components to pass data between the IMDG and a MapReduce job. The I/O components include the Named Map Input Format, the Named Cache Input Format, and the Grid Output Format, which together allow MapReduce applications to use the IMDG as a data source and/or result storage for MapReduce jobs. In addition, the Dataset Input Format accelerates the performance of MapReduce jobs by caching HDFS datasets in the IMDG. 
+
+Using ScaleOut hServer, developers can write and run standard Hadoop MapReduce applications in Java, and these applications can be executed stand-alone by ScaleOut hServer's execution engine. The Apache Hadoop distribution does _not_ need to be installed to run MapReduce programs; optionally, it can be installed to make use of other Hadoop components, such as the Hadoop Distributed File System (HDFS). (If HDFS is used to store data sets analyzed by MapReduce, ScaleOut hServer should be installed on the same cluster of servers to minimize network overhead.) ScaleOut hServer supports standard Apache Hadoop as well as third party distributions by Hortonworks and Cloudera. ScaleOut hServer's execution engine offers very fast job scheduling (measured in milliseconds), highly optimized data combining and shuffling, in-memory storage of intermediate key/value pairs within the IMDG, optional use of sorting, and fast, pipelined access to in-memory data within the IMDG for analysis. In addition, ScaleOut hServer automatically sets the number of splits, partitions, and slots for IMDG-based data. Lastly, the performance of the Hadoop MapReduce engine automatically scales as servers are added to the cluster, and IMDG-based data is automatically redistributed across the cluster as needed.
+
+Developers can use ScaleOut hServer's Java APIs footnote:[The ScaleOut StateServer Java API library (soss-jnc-5.2.jar) is licensed under the ScaleOut StateServer End User License Agreement.] to create, read, update, and delete objects within the IMDG. This enables MapReduce applications to input "live" data sets which are stored and updated within the IMDG. Complex IMDG-based objects can be stored within a _named cache_, which provides comprehensive semantics, such as object timeouts, dependency relationships, pessimistic locking, and access by remote IMDGs. These objects are input to MapReduce applications using the _Named Cache_ input format. Alternatively, large populations of small key/value pairs can be efficiently stored within a _named map_, which provides highly efficient memory usage and streamlined semantics following the Java concurrent map model. These objects can be input to MapReduce applications using the _Named Map_ input format. The _Grid_ output format can be used to output objects from MapReduce applications to a named cache or a named map.
+
+Note that some advanced features of the Java APIs, such as event handling, parallel query and parallel method invocation are only available under a full ScaleOut StateServer(R) or ScaleOut Analytics Server(R) license.
+
+This programming guide is intended to be a supplement to the Java API documentation and the ScaleOut StateServer (SOSS) Help File included with ScaleOut hServer. It focuses on the Java components used with Hadoop MapReduce applications.
+
+[[install]]
+Installation of the IMDG
+------------------------
+
+Please refer to the ScaleOut StateServer help file for instructions on installing the IMDG service on a cluster of servers. ScaleOut hServer installs the ScaleOut StateServer grid service on all servers. When a MapReduce job is started, ScaleOut hServer automatically starts Java Virtual Machines (JVMs) on all servers (called an _invocation grid_) to implement its scalable Hadoop MapReduce engine.
+
+image::images/fig2_hserver_worker_node.png[align="center",link="images/fig2_hserver_worker_node.png"]
+
+The following "quick start" instructions for installing the IMDG on Linux will get you started. For each server in the cluster:
+
+. Download the RPM file from the ScaleOut Software web site.
+. Install the RPM: `sudo rpm -ivh soss-5.1.30-230.el6.x86_64.rpm` (It will be installed into '/usr/local/soss5'.)
+. Verify the daemon is running: `soss query`
+. Configure the network settings to bind the grid service to the desired network, for example: `soss set net_interface=10.0.3.0 subnet_mask=255.255.255.0` (You also can edit the 'soss_params.txt' file in the installation directory and restart the daemon.)
+. Join this server to the cluster of IMDG servers: `soss join`
+
+To install ScaleOut StateServer on Windows, download the appropriate installer from the the ScaleOut Software web site and follow the installation instructions. The server is installed as a Windows service and can be configured by using the SOSS Management Console.
+
+The IMDG servers will automatically discover each other and balance the storage workload among all servers.
+
+Sufficient physical memory should be provisioned for the IMDG to hold all data set objects and their associated replicas following the best practices described in the SOSS Help File. By default, named cache objects have one replica on a different server to ensure high availability in case a server fails. For example, if a 100GB data set is to be stored in the IMDG, this will require approximately 200GB of aggregate memory for the data set and its replicas (using the default parameters). If the cluster has four servers, this will require 50GB per server. Note that additional memory is required for object metadata and other data structures used by the IMDG. To maximize the performance of MapReduce applications, named map objects and intermediate key/value pairs do not use replicas; replicas optionally can be enabled for named maps (described below).
+
+For MapReduce applications which input data from HDFS and store results in HDFS, the IMDG's memory is only used to store intermediate results sent from the mappers to the reducers. If multiple grid servers are added to the cluster, their memory automatically is combined to store very large sets of intermediate results. Replicas are not used for intermediate results, and these results are cleared when a MapReduce job completes.
+
+The Java API library for ScaleOut hServer can be found in 'soss-hserver-5.2-*.jar', and the Java API library for creating, reading, updating, and deleting objects can be found in 'soss-jnc-5.2.jar'.
+
+These jars and their dependencies are located in the 'java_api' subdirectory of the ScaleOut StateServer installation directory.
+
+Support for Multiple Hadoop Distributions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ScaleOut hServer runs with several Hadoop environments, including those configured to run MapReduce on YARN, and it can serve as a MapReduce execution engine for Apache Hive (see <<hive, configuration instructions>>). 
+
+If the MapReduce job running in ScaleOut hServer uses HDFS as the data input and/or output, it is necessary for the set of library JARs on the client classpath to match the distribution of Hadoop used to run the HDFS data node(s) and name node(s). Apache Hadoop 2.4.1 distribution-specific JARs are located in the ScaleOut hServer installation directory under `java_api/hslib/hadoop-2.4.1`. Additional distribution-specific JARs can be downloaded from the website at: http://www.scaleoutsoftware.com/support/support-downloads/. For convenience, a shell script to automatically download the JARs from the website is located in the ScaleOut hServer installation directory under `java_api/hslib/` (please see the included README for usage instructions). After downloading the JARs, move them to the installation folder under `java_api/hslib/`. To run a ScaleOut hServer MapReduce job, the libraries in `java_api/*` and `java_api/lib/*`, and the distribution specific JARs should be included in the classpath on the invoking client. 
+
+ScaleOut hServer ships with support for the following Hadoop distributions:
+[width="50%",cols="asciidoc,asciidoc",]
+[options="header"]
+|====================================================
+| Distribution        | Library path for 'java_api' ('JavaApi' on Windows)
+| Apache Hadoop 1.2.1 | hslib/hadoop-1.2.1
+| Apache Hadoop 2.4.1 | hslib/hadoop-2.4.1
+| CDH 4.4.0           | hslib/cdh4.4.0
+| CDH 5 (MR1)         | hslib/cdh5.0.2
+| CDH 5 (YARN)        | hslib/cdh5.0.2-yarn
+| CDH 5.2 (MR1)       | hslib/cdh5.2.1
+| CDH 5.2 (YARN)      | hslib/cdh5.2.1-yarn
+| HDP 2.1 (YARN)      | hslib/hdp2.1-yarn
+| HDP 2.2 (YARN)      | hslib/hdp2.2-yarn
+| IBM BigInsights 3.0 | hslib/ibm-bi-3.0.0
+|====================================================
+
+
+Running Hadoop MapReduce jobs with ScaleOut hServer
+---------------------------------------------------
+
+ScaleOut hServer executes MapReduce jobs without using the Hadoop job tracker/task tracker infrastructure. The operations are performed through an _invocation grid_ (IG), that is, a set of worker JVMs, each of which is started by its corresponding IMDG grid service. The intermediate data between mappers and reducers are stored in the IMDG. If the input or output format specified for the MapReduce job does not use HDFS as a data store, it is not required to install the Apache (or any other) Hadoop distribution or start Hadoop processes on the IMDG servers. If the job uses HDFS for input and/or output, the name nodes and data nodes must be running for the job to complete.
+
+Requirements
+~~~~~~~~~~~~
+
+The following requirements apply to MapReduce applications executed using ScaleOut hServer:
+
+* The job must use the new MapReduce API (_org.apache.hadoop.mapreduce_).
+* If a combiner is specified, it must emit no more than one key value pair per call, and the emitted key must be the same as the parameter key.
+* The input/output keys and values of the mapper and the reducer must implement _Writable_ or _Serializable_. If sorting is enabled, the mapper output key must also implement _WritableComparable_ or _Comparable_.
+
+Configuring the IMDG to run MapReduce jobs
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+After the IMDG is installed as described in <<install,section 1>>, follow the below procedure to configure it to run MapReduce jobs:
+
+* Each IMDG grid service (daemon) relies on the _JAVA_HOME_ environment variable in its context to find the Java installation directory used to start up worker JVMs. On Linux, this variable is set in the '/etc/init.d/sossd' script. This script should be edited if the default _JAVA_HOME_ value ('/usr/lib/jvm/jre') does not point to the Java installation directory. (Alternatively, '/usr/lib/jvm/jre' can be configured as a symbolic link to the Java installation directory.) On Windows, system variable _JAVA_HOME_ should be set to point to the JDK installation folder.
+* The ScaleOut hServer library JARs should be present in the classpath of the JVM which starts the invocation. 
+
+[NOTE]
+If the MapReduce job is intended to be run from within another application and not from the command line, the ScaleOut hServer libraries should be present in the classpath of that application.
+
+
+Submitting MapReduce jobs to ScaleOut hServer
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To construct a MapReduce job using ScaleOut hServer, the _HServerJob_ class should be used instead of _Job_ for configuring the MapReduce job. In addition, when running under YARN, Hadoop MapReduce jobs can be run unchanged as described in the following <<yarn, section>>. The _HServerJob_ supports identical constructor signatures to that of _Job_ and (since it extends the _Job_ class) the methods for configuring the job parameters are unchanged. For example, to apply this change to the WordCount example:
+
+[width="100%",cols="asciidoc,asciidoc",]
+|====================================================
+|
+.Using the Hadoop Job Tracker
+[source,java]
+-----------------------------------
+//This job will run using the Hadoop job tracker:
+public static void main(String[] args)
+                        throws   Exception {
+
+    Configuration conf = new Configuration();
+    Job job = new Job(conf, "wordcount"); //Change this line!
+
+    job.setOutputKeyClass(Text.class);
+    job.setOutputValueClass(IntWritable.class);
+    job.setMapperClass(Map.class);
+    job.setReducerClass(Reduce.class);
+    job.setInputFormatClass(
+         TextInputFormat.class);
+    job.setOutputFormatClass(
+         TextOutputFormat.class);
+    FileInputFormat.addInputPath(
+         job, new Path(args[0]));
+    FileOutputFormat.setOutputPath(
+         job, new Path(args[1]));
+
+    job.waitForCompletion(true);
+ }
+-----------------------------------
+|
+.Using ScaleOut hServer
+[source,java]
+-----------------------------------
+//This job will run using ScaleOut hServer:
+public static void main(String[] args)
+                        throws Exception {
+
+    Configuration conf = new Configuration();
+    Job job = new HServerJob(conf, "wordcount"); //This line changed!
+
+    job.setOutputKeyClass(Text.class);
+    job.setOutputValueClass(IntWritable.class);
+    job.setMapperClass(Map.class);
+    job.setReducerClass(Reduce.class);
+    job.setInputFormatClass(
+         TextInputFormat.class);
+    job.setOutputFormatClass(
+         TextOutputFormat.class);
+    FileInputFormat.addInputPath(
+         job, new Path(args[0]));
+    FileOutputFormat.setOutputPath(
+         job, new Path(args[1]));
+
+    job.waitForCompletion(true);
+ }
+-----------------------------------
+|====================================================
+
+There is a constructor signature in _HServerJob_ which takes an additional _boolean_ parameter to control whether the reducer input keys are sorted:
+
+[source,java]
+---------------------------------------------------------------------
+public HServerJob(Configuration conf, String jobName, boolean sortEnabled)
+---------------------------------------------------------------------
+
+To maximize performance, this constructor parameter allows sorting of the reducer input keys for each partition to be disabled.
+
+[[run-cli-java]]
+Running MapReduce jobs from the command line (without a Hadoop distribution installed)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+As a full replacement for the Hadoop MapReduce execution engine, ScaleOut hServer does not require any Hadoop distribution to be installed. To run this example from the command line without a Hadoop distribution installed, the ScaleOut hServer library JARs *and* the Hadoop distribution JARs must be added to the Java classpath. Individual worker JVMs in the invocation grid will automatically receive all necessary JAR dependencies specified by the application's configuration.
+
+[NOTE]
+For your convenience, the Hadoop distribution JARs required for running MapReduce jobs are located in the ScaleOut hServer installation directory. 
+
+If the previous WordCount example is packaged as 'wordcount-hserver.jar', you can run it via the command line as follows:
+
+*Windows*
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+java -classpath "C:\Program Files\ScaleOut_Software\StateServer\JavaAPI\lib\*;C:\Program Files\ScaleOut_Software\StateServer\JavaAPI\*;C:\Program Files\ScaleOut_Software\StateServer\JavaAPI\hslib\hadoop-1.2.1\*"  org.myorg.WordCount input/ output/ 
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+*Linux*
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+$ java -classpath "/usr/local/soss/java_api/*:/usr/local/soss/java_api/lib/*:/usr/local/soss/java_api/hslib/hadoop-1.2.1/*" org.myorg.WordCount input/ output/
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+If your application uses HDFS for input or output, the Hadoop configuration directory must be added to the Java classpath when running the ScaleOut hServer job through the command line. For example (using CDH5 on Linux): 
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+$ java -classpath "/usr/local/soss/java_api/*:/usr/local/soss/java_api/lib/*:/usr/local/soss/java_api/hslib/cdh5.0.2/*:/etc/hadoop/conf" org.myorg.WordCount input/ output/
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 
+
+[[run-cli-hadoop]]
+Running a MapReduce Job from the Hadoop Command Line
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Optionally, if a Hadoop distribution is installed on the IMDG's cluster, you can use the Hadoop command line to run a MapReduce job within the IMDG. To do this, be sure that the ScaleOut hServer library JARs are present in the classpath of the invocation JVM. This can be accomplished by adding the HADOOP_CLASSPATH variable to 'conf/hadoop-env.sh' in the Hadoop installation directory, as follows:
+
+*Apache Hadoop 1.2.1*
+--------------------------------------------------------------------------------------------------------------------------------
+$ export HADOOP_CLASSPATH=/usr/local/soss/java_api/*:/usr/local/soss/java_api/lib/*:/usr/local/soss/java_api/hslib/hadoop-1.2.1/*
+--------------------------------------------------------------------------------------------------------------------------------
+
+*Apache Hadoop 2.4.1*
+--------------------------------------------------------------------------------------------------------------------------------
+$ export HADOOP_CLASSPATH=/usr/local/soss/java_api/*:/usr/local/soss/java_api/lib/*:/usr/local/soss/java_api/hslib/hadoop-2.4.1/*
+--------------------------------------------------------------------------------------------------------------------------------
+
+*CDH 4.4.0*
+------------------------------------------------------------------------------------------------------------------------------
+$ export HADOOP_CLASSPATH=/usr/local/soss/java_api/*:/usr/local/soss/java_api/lib/*:/usr/local/soss/java_api/hslib/cdh4.4.0/*
+------------------------------------------------------------------------------------------------------------------------------
+
+*CDH 5*
+------------------------------------------------------------------------------------------------------------------------------------
+$ export HADOOP_CLASSPATH=/usr/local/soss/java_api/*:/usr/local/soss/java_api/lib/*:/usr/local/soss/java_api/hslib/cdh5.0.2/*
+------------------------------------------------------------------------------------------------------------------------------------
+
+*CDH 5 (YARN)*
+------------------------------------------------------------------------------------------------------------------------------------
+$ export HADOOP_CLASSPATH=/usr/local/soss/java_api/*:/usr/local/soss/java_api/lib/*:/usr/local/soss/java_api/hslib/cdh5.0.2-yarn/*
+------------------------------------------------------------------------------------------------------------------------------------
+
+*CDH 5.2*
+------------------------------------------------------------------------------------------------------------------------------------
+$ export HADOOP_CLASSPATH=/usr/local/soss/java_api/*:/usr/local/soss/java_api/lib/*:/usr/local/soss/java_api/hslib/cdh5.2.1/*
+------------------------------------------------------------------------------------------------------------------------------------
+
+*CDH 5.2 (YARN)*
+------------------------------------------------------------------------------------------------------------------------------------
+$ export HADOOP_CLASSPATH=/usr/local/soss/java_api/*:/usr/local/soss/java_api/lib/*:/usr/local/soss/java_api/hslib/cdh5.2.1-yarn/*
+------------------------------------------------------------------------------------------------------------------------------------
+
+*HDP 2.1 (YARN)*
+------------------------------------------------------------------------------------------------------------------------------------
+$ export HADOOP_CLASSPATH=/usr/local/soss/java_api/*:/usr/local/soss/java_api/lib/*:/usr/local/soss/java_api/hslib/hdp2.1-yarn/*
+------------------------------------------------------------------------------------------------------------------------------------
+
+*HDP 2.2 (YARN)*
+------------------------------------------------------------------------------------------------------------------------------------
+$ export HADOOP_CLASSPATH=/usr/local/soss/java_api/*:/usr/local/soss/java_api/lib/*:/usr/local/soss/java_api/hslib/hdp2.2-yarn/*
+------------------------------------------------------------------------------------------------------------------------------------
+
+*IBM BigInsights*
+------------------------------------------------------------------------------------------------------------------------------------
+$ export HADOOP_CLASSPATH=/usr/local/soss/java_api/*:/usr/local/soss/java_api/lib/*:/usr/local/soss/java_api/hslib/ibm-bi-3.0.0/*
+------------------------------------------------------------------------------------------------------------------------------------
+
+[NOTE]
+Running a MapReduce Job from the Hadoop command line does not require adding the Hadoop distribution-specific JARs to the classpath; this is handled for you by the Hadoop command line (it will use the default JARs for your distribution). 
+ 
+This small change is sufficient to run a MapReduce application from the Hadoop command line. For example, if the WordCount example is modified as described in the previous section and packaged as 'wordcount-hserver.jar', it can be run from the command line as follows:
+---------------------------------------------------------------------------
+$ hadoop jar wordcount-hserver.jar org.myorg.WordCount inputdir/ outputdir/
+---------------------------------------------------------------------------
+
+[[yarn]]
+Running existing Hadoop applications
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+When the installed Hadoop distribution is configured to run YARN, ScaleOut hServer can be used to run unchanged Hadoop applications, i.e., the JARs containing standard Hadoop MR jobs can be run as-is. To direct MapReduce jobs to use ScaleOut hServer as the execution engine, the following actions are required in addition to the general ScaleOut hServer installation procedure described in <<install,Installation of the IMDG>>.
+
+Set the following environmental variables either by editing 'conf/hadoop-env.sh' in the Hadoop installation directory or through command line:
+
+. Configure Hadoop to run in YARN mode. Make sure that _HADOOP_MAPRED_HOME_ variable is set to the location of the YARN MR2 implementation. Please refer to the Hadoop distribution documentation for more details on how to configure MapReduce to run YARN. 
++
+
+Example for CDH5:
++
+-----------------------------------------------------
+$ export HADOOP_MAPRED_HOME=/usr/lib/hadoop-mapreduce
+-----------------------------------------------------
+
+. Add the ScaleOut hServer library JARs and the appropriate Hadoop distribution JARs to the Java classpath. Make sure that the distribution-specific JAR folder has the “-yarn” or equivalent suffix if applicable:
++
+---------------------------------------------------------------------------------------------------------------------------------
+$ export HADOOP_CLASSPATH=/usr/local/soss/java_api/*:/usr/local/soss/java_api/lib/*:/usr/local/soss/java_api/hslib/cdh5.2.1-yarn/*
+----------------------------------------------------------------------------------------------------------------------------------
++
+. ScaleOut hServer has to be configured as the MapReduce execution framework by setting the configuration property _mapreduce.framework.name_ to _hserver-yarn_. This property may be set in 'conf/mapred-site.xml' or passed to the Hadoop executable via the command line.
+
+Here is an example of running standard Hadoop word count example with ScaleOut hServer. Environmental variables are assumed to be configured, and _mapreduce.framework.name_ is set through command line:
+
+----------------------------------------------------------------------------------------------------
+$ hadoop jar hadoop-mapreduce-examples.jar wordcount -Dmapreduce.framework.name=hserver-yarn  in out
+----------------------------------------------------------------------------------------------------
+
+
+[NOTE]
+If output key sorting is not required for running a MapReduce job, it can be disabled to improve performance and reduce memory usage. This can be done by setting the configuration property _mapred.hserver.sortkeys_ to _false_. This property is set to _true_ by default (output keys are sorted), which is analogous to standard Hadoop behavior.
+
+Explicitly specifying the invocation grid
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+An _invocation grid_ (IG) represents a set of JVMs attached to the grid service processes used to execute MapReduce applications within the IMDG. Each invocation grid is identified by a user-specified name and specifies the necessary dependencies (JARs, classes, folders, or files) and JVM parameters.
+
+By default, ScaleOut hServer automatically creates an IG for each MapReduce application's execution; the IG includes the JAR file for the MapReduce job as the only dependency. The IG is loaded and the dependencies are copied to the worker nodes and the worker JVMs before the job is run. After execution completes, the IG is unloaded, and the JVMs shut down. ScaleOut hServer supports the use of multiple IGs to independently run different jobs at the same time.
+
+To avoid creating an IG for each job, it can be managed manually and provided as a constructor parameter to the _HServerJob_ instance. This is advantageous for the following reasons:
+
+* Loading the IG can take a considerable time (up to several seconds). If a relatively short job is run several times in a short time span, each subsequent iteration can share a single invocation grid to avoid load time and maximize performance.
+* If the job's dependencies include multiple JARs and classes, they can be specified explicitly through the invocation grid.
+* A custom IG can be used to pass parameters to the worker JVMs, such as memory or garbage collector settings.
+* An IG can be reused for NamedMap parallel invocations or queries that may be needed in conjunction with MapReduce applications.
+
+If _HServerJob_ creates its own IG, the job will automatically unload the IG upon completion. However, if the _HServerJob_ is provided with a pre-existing IG, it will not be automatically unloaded after the completion of the job. In this case, the _unload()_ method should be called on the IG object to dispose of the IG when it is no longer needed for further MapReduce jobs or other parallel invocations.
+
+Invocation grids are created by configuring a builder object and calling _load()_. If the IG is intended to be used for hServer invocations, the builder should be created with _HServerJob.getInvocationGridBuilder(...)_ instead of the _InvocationGridBuilder_ constructor.
+
+In the following example, a custom-built IG is configured with custom JARs, class dependencies, and JVM parameters, used to perform multiple jobs in rapid succession, and then explicitly unloaded:
+
+[source,java]
+---------------------------------------------------------------------
+public static void main(String argv[]) throws Exception {
+
+   //Configure and load the invocation grid
+   InvocationGrid grid = HServerJob.getInvocationGridBuilder("myGrid").
+                                // Add JAR files as IG dependencies
+                                addJar("main-job.jar").
+                                addJar("first-library.jar").
+                                addJar("second-library.jar").
+                                // Add classes as IG dependencies
+                                addClass(MyMapper.class).
+                                addClass(MyReducer.class).
+                                // Define custom JVM parameters
+                                setJVMParameters("-Xms512M -Xmx1024M").
+                                load();
+
+   //Run 10 jobs on the same invocation grid
+   for(int i=0; i<10; i++)
+   {
+       Configuration conf = new Configuration();
+
+       //The preloaded invocation grid is passed as the parameter to the job
+       Job job = new HServerJob(conf, "Job number "+i, false, grid);
+
+       //.........Configure the job here.........
+
+       //Run the job
+       job.waitForCompletion(true);
+   }
+
+   //Unload the invocation grid when we are done
+   grid.unload();
+}
+---------------------------------------------------------------------
+
+Passing parameters to mappers and reducers
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+ScaleOut hServer can pass object parameters to the mappers and reducers during invocation (called a job parameter). The job parameter object is broadcast to each worker node at the invocation time in a scalable and efficient way. The parameter object type should be _Serializable_. To add a job parameter to the job, use the _setJobParameter(...)_ method of _HServerJob_:
+
+[source,java]
+---------------------------------------------------------------------
+job.setJobParameter("This string is a job parameter.");
+---------------------------------------------------------------------
+
+To retrieve the parameter at the mapper or the reducer, use the _JobParameter_ helper class:
+
+[source,java]
+---------------------------------------------------------------------
+public static class MyReducer
+            extends Reducer<String, Integer, String, Integer> {
+
+    @Override
+    public void reduce(String key, Iterable<Integer> values, Context context)
+    throws IOException, InterruptedException {
+
+        String parameter = (String)JobParameter.get(context.getConfiguration());
+        // ...
+    }
+}
+---------------------------------------------------------------------
+
+Single result optimization
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+It is often useful for a job to produce a single object as the result, for example, when combining the output of all mappers into a single output value. To accomplish this, the map output key space should consist of a single key, the reducer input and output types should match (i.e., the reducer can be used as a combiner), and the reducer/combiner should produce no more than one key value pair per call. If these conditions are met, the output of the job is a single object, which is the result of combining all the values for a single map output key.
+
+ScaleOut hServer identifies and optimizes this usage model, allowing this type of job to run efficiently and without the need for an output format. Using the _runAndGetResult(...)_ method of _HServerJob_ to run the optimized job, the result object is returned directly to the application. The job should include a combiner to run this optimization.
+
+To illustrate a single result optimization, the WordCount example can be modified to count the occurrences of a specific word:
+
+[source,java]
+---------------------------------------------------------------------
+public class SingleWordCount {
+
+    private final static String wordPropertyName = "com.scaleoutsoftware.soss.hserver.examples.lookupWord";
+
+    //The mapper is changed to emit values only for matching words
+    public static class TokenizerMapper
+            extends Mapper<Object, Text, NullWritable, IntWritable> {
+
+        private final static IntWritable one = new IntWritable(1);
+        private String lookupWord;
+
+        @Override
+        protected void setup(Context context) throws IOException, InterruptedException {
+            super.setup(context);
+            String strings[] = context.getConfiguration().getStrings(wordPropertyName);
+            if (strings.length == 1) {
+                lookupWord = strings[0];
+            } else throw new IOException("Word property is not set.");
+
+        }
+
+        public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
+            StringTokenizer itr = new StringTokenizer(value.toString());
+            while (itr.hasMoreTokens()) {
+                if (itr.nextToken().equals(lookupWord))  {
+                    //Emit only for the matching words
+                    context.write(NullWritable.get(), one);
+                }
+            }
+        }
+    }
+
+    //The reducer is unchanged except for the key type
+    public static class IntSumReducer
+            extends Reducer<NullWritable, IntWritable, NullWritable, IntWritable> {
+
+        private IntWritable result = new IntWritable();
+
+        @Override
+        public void reduce(NullWritable key, Iterable<IntWritable> values,
+                           Context context) throws IOException, InterruptedException {
+            int sum = 0;
+            for (IntWritable val : values) {
+                sum += val.get();
+            }
+            result.set(sum);
+            context.write(key, result);
+        }
+    }
+
+    public static void main(String[] args) throws Exception {
+        Configuration conf = new Configuration();
+        String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
+        if (otherArgs.length != 2) {
+            System.err.println("Usage: singlewordcount <in>  <word>");
+            System.exit(2);
+        }
+        conf.setStrings(wordPropertyName, otherArgs[1]);
+        HServerJob job = new HServerJob(conf, "Single word count");
+        job.setJarByClass(SingleWordCount.class);
+        job.setMapperClass(TokenizerMapper.class);
+        //The map output types should be specified
+        job.setMapOutputKeyClass(NullWritable.class);
+        job.setMapOutputValueClass(IntWritable.class);
+        job.setCombinerClass(IntSumReducer.class);
+        FileInputFormat.addInputPath(job, new Path(otherArgs[0]));
+
+        System.out.println("Word \""+otherArgs[1]+"\" was used "+job.runAndGetResult()+" times.");
+    }
+}
+---------------------------------------------------------------------
+
+Storing input/output data sets in the IMDG
+------------------------------------------
+
+image::images/fig3_hserver_grid_usage.png[align="center",link="images/fig3_hserver_grid_usage.png"]
+After you install ScaleOut hServer on the servers of your cluster, it will automatically discover and self-aggregate into an in-memory data grid (IMDG) spanning the cluster. Using ScaleOut StateServer's Java APIs, your application can create, read, update, and delete key/value pairs in the IMDG to manage fast-changing, "live" data, keeping the data in the grid up to date as changes occur. At the same time, your Hadoop MapReduce program can read a collection of key/value pairs from the IMDG using the input formats provided by ScaleOut hServer. These input formats, which subclass _GridInputFormat_, retrieve key/value pairs from the IMDG and feed them to Hadoop's mappers with minimum latency. Likewise, the output of Hadoop's reducers optionally can be stored back into ScaleOut hServer's IMDG using the _GridOutputFormat_ and its associated Grid Record Writer, making these results available for subsequent Hadoop processing without data leaving the IMDG. You also can output results to HDFS or another persistent store.
+
+The diagram below illustrates the use of the Grid Record Reader and Grid Record Writer. The Grid Record Reader is designed to input key/value pairs to Hadoop's mappers with minimum latency. The _GridInputFormat_ automatically creates splits of the specified input key/value collection to avoid network overhead when retrieving key/value pairs on all worker nodes:
+
+image::images/fig4_hserver_detail_3.png[align="center",link="images/fig4_hserver_detail_3.png"]
+
+There are two ways to store objects in the IMDG, either through a _NamedMap_ or through a _NamedCache_:
+
+. _NamedCache_ is optimized for bigger objects (e.g., 10KB or larger) and has advanced features, such as property-based query, dependencies, and pessimistic locking. The keys are restricted to strings, UUIDs, and byte arrays. To construct the named cache, use _CacheFactory_.
+. _NamedMap_ is a distributed Java _ConcurrentMap_ optimized for storing small objects efficiently. A named map supports arbitrary keys and is coherent across all clients connected to the same IMDG. To construct the named map, use _NamedMapFactory_.
+
+NamedMap feature overview
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Using a _NamedMap_ is the preferred way to store most MapReduce input and output data sets because it provides efficient storage of large numbers of relatively small keys and values. The key features of a _NamedMap_ are:
+
+image::images/fig5_hserver_cache_map.png[align="center",width=300,link="images/fig5_hserver_cache_map.png"]
+* *Bulk operations.* To efficiently put or remove a large number of keys, use a _BulkPut_ view of the map which can be obtained by calling the _getBulkPut(...)_ method. This combines multiple map operations into chunks which provide higher overall bandwidth. _putAll(...)_ also will provide the same performance gain if the keys and values are pre-computed and put into an intermediate map.
+* *Client cache with coherency policy.* A customizable number of the recently read values can be stored in memory in the client cache. On subsequent reads, cached values for a key are returned if they are not older than the coherency interval. A coherency interval of 0 means that cached values are never used, and every read requires a call to the data grid. The client cache's size can be configured by _setClientCacheSize(...)_, and the coherency interval is configured by _setCoherencyIntervalMilliseconds(...)_. By default, the client cache is turned off (coherency interval is 0).
+* *Parallel method invocation.* Parallel method invocations can run simultaneously on all the hosts in the data grid, with each host performing operations on its local subset of keys. This helps to avoid moving data across the network and provides the best performance. Parallel invocations are defined by subclassing _NamedMapInvokable_. They require that an invocation grid is assigned to the named map by _setInvocationGrid(...)_ footnote:[Parallel method invocation and parallel query require a ScaleOut Analytics Server(R) license.]
+* *Parallel query.* Parallel query returns a list of matching keys. To query a map, use _runQuery(...)_, with a _QueryCondition_ implementation as a parameter. Section 3.6 contains more information on queries and parallel method invocations.
+* *Custom serialization.* Custom serialization can be used to efficiently store keys and values in memory. Custom serializers, which implement _CustomSerializer_, should be provided to the map factory method _NamedMapFactory.getMap(...)_. Each instance of the client application across the grid should have the same custom serializers assigned to the map.
+* *Replication.* A _NamedMap_ can be configured to create replicas of its contents on multiple hosts. Enabling replication provides fault tolerance, i.e., it ensures that no data is lost in case of host failure at the expense of increased memory and network utilization. The number of replicas is determined by the _max_replicas_ parameter in the _soss_params.txt_ parameters file. By default, replication is disabled.
+
+Please refer to the ScaleOut StateServer Java API documentation for more details.
+
+The NamedMapInputFormat
+~~~~~~~~~~~~~~~~~~~~~~~
+
+The _NamedMapInputFormat_ reads all the entries from the named map and sends the keys and values it retrieves to the mappers.
+
+The input named map should be set as a configuration property by calling _setNamedMap(...)_.
+
+The following example illustrates how to use _NamedMapInputFormat_ and associate it with a named map within the IMDG: 
+
+[source,java]
+---------------------------------------------------------------------
+//Create the named map
+NamedMap<Integer, String> namedMap = NamedMapFactory.getMap("myMap");
+namedMap.clear();
+
+//Insert entries - do a bulk put for better performance
+BulkPut<Integer, String> bulkPut = namedMap.getBulkPut();
+for(int i=0; i<1000000; i++)
+{
+    bulkPut.put(i, "initial.value");
+}
+bulkPut.close();
+
+//Set up the job
+Job job = new HServerJob(new Configuration());
+// ...
+job.setInputFormatClass(NamedMapInputFormat.class);
+NamedMapInputFormat.setNamedMap(job, namedMap);
+---------------------------------------------------------------------
+
+The NamedCacheInputFormat
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The _NamedCacheInputFormat_ reads all the keys and values from the named cache within the IMDG and sends them to the mappers. It assumes that all the objects in the named cache have the same type. The key that the mapper receives for each object is its _CachedObjectId_ identifier within the named cache. The key/value pairs are served to the mappers in random order.
+
+The input cache name should be set as a configuration property by calling _setNamedCache(...)_. The following example illustrates how to use the _NamedCacheInputFormat_ and associate it with a named cache within the IMDG:
+
+[source,java]
+---------------------------------------------------------------------
+//Create the named cache and put some values in it
+NamedCache cache = CacheFactory.getCache("MyNamedCache");
+cache.put("key1", "foo");
+cache.put("key2", "bar");
+
+//Set up the job
+Job job = new HServerJob(new Configuration());
+// ...
+job.setInputFormatClass(NamedCacheInputFormat.class);
+NamedCacheInputFormat.setInputObjectClass(job, String.class);
+NamedCacheInputFormat.setNamedCache(job, "MyNamedCache");
+---------------------------------------------------------------------
+
+The GridOutputFormat
+~~~~~~~~~~~~~~~~~~~~
+
+The Grid Record Writer, which is generated by the Grid Output Format (of type _GridOutputFormat_), writes key/value pairs emitted by the reducers to a named map or a named cache within the IMDG. The grid output format does not preserve the order of key/value pairs. If two values have the same key, only one of them will be saved. ScaleOut hServer does not perform sorting of the keys if the grid output format is used, because named maps and named caches do not preserve ordering.
+
+Using a NamedMap for Output
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To configure the _GridOutputFormat_ to use a named map for output, the named map should be passed as a configuration property by calling _setNamedMap(...)_. The following example illustrates how to set up the grid output format and associate it with a named map in the IMDG:
+
+[source,java]
+---------------------------------------------------------------------
+NamedMap<IntWritable, Text> outputMap = NamedMapFactory.getMap("myMap");
+// ...
+job.setOutputFormatClass(GridOutputFormat.class);
+GridOutputFormat.setNamedMap(job, outputMap);
+---------------------------------------------------------------------
+
+Using a NamedCache for Output
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To configure the _GridOutputFormat_ to use a named cache for output, the cache name should be set as a configuration property by calling _setNamedCache(...)_. The following example illustrates how to set up the grid output format and associate it with a named cache in the IMDG:
+
+[source,java]
+---------------------------------------------------------------------
+NamedCache writablecacheO = CacheFactory.getCache("MyOutputCache");
+// ...
+job.setOutputFormatClass(GridOutputFormat.class);
+GridOutputFormat.setNamedCache(job, "MyOutputCache");
+---------------------------------------------------------------------
+
+If a named cache is used for output, the reducer's output key should be one of the following: _Text_, _String_, _CachedObjectId_, _UUID_ or _byte[]_. Values should implement _Writable_ or _Serializable_. If the values are _Writable_, a custom serializer should be set for the named cache before accessing the data set through the named cache's access methods (see section 3.5).
+
+Using the IMDG's NamedMap/NamedCache with Writables
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+By default, it is assumed that the objects stored in the named map or the named cache are serialized and deserialized using the standard Java serialization framework. To use other serialization frameworks, a custom serializer must be provided to each instance of the ScaleOut StateServer named cache. ScaleOut hServer includes a custom serializer of type _WritableSerializer_ for Hadoop _Writable_ types, so that these objects can be conveniently stored and retrieved from the IMDG. The _WritableSerializer_ takes the _Writable_-implementing type of objects it serializes and deserializes as a constructor parameter. To assign a custom serializer to the named map, use the factory method which takes custom serializers for key and value:
+
+[source,java]
+---------------------------------------------------------------------
+NamedMap<Text, IntWritable> map = NamedMapFactory.getMap("myMapW",
+                new WritableSerializer<Text>(Text.class),
+                new WritableSerializer<IntWritable>(IntWritable.class));
+map.put(new Text("myText"), new IntWritable(1));
+---------------------------------------------------------------------
+
+To install a custom serializer for a named cache, it should be passed to the named cache instance by calling _setCustomSerialization(...)_:
+
+[source,java]
+---------------------------------------------------------------------
+// Construct the named cache and set custom serialization
+NamedCache cache = CacheFactory.getCache("cache");
+cache.setCustomSerialization(
+new WritableSerializer(LongWritable.class));
+
+// Put some numbers in the named cache as objects:
+LongWritable number = new LongWritable();
+for (long i = 0; i < NUMBER_OF_OBJECTS; i++) {
+    number.set(i);
+    cache.put("" + i, number);
+}
+
+// Retrieve them back:
+for (long i = 0; i < NUMBER_OF_OBJECTS; i++) {
+    number = ((LongWritable) cache.get("" + i));
+    if (i != number.get()) System.out.println("Objects do not match.");
+}
+---------------------------------------------------------------------
+
+Parallel Method Invocations and Queries on the NamedMap
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The _NamedMap_ supports _parallel method invocations_ and _queries_ which are concurrently executed across all nodes in the IMDG, with each node working on its local set of keys and values. Please refer to the _NamedMap_ documentation for more details.
+
+*Parallel method invocations* are run on the map contents to produce a single result object. They have two phases: _eval(...),_ which returns a result for each key in the map, and _merge(),_ which performs a pairwise merge of the results. Parallel operations can have a parameter object, which is passed as a parameter to the _eval(...)_ and _merge()_ methods when they are invoked by the worker nodes. These parallel operations can be treated as a lightweight alternative to the MapReduce job performed on a _NamedMap_. Parallel method invocations are defined by subclassing _NamedMapInvokable_ and passing the implementation, parameter object, and optional timeout to _NamedMap.invoke(...)_.
+
+*Queries* filter keys in the _NamedMap_ based on the provided condition and return a collection of the matching keys. Queries are run by providing an implementation of the _QueryCondition_ interface to _NamedMap.runQuery(...)_. The sample program in the next section contains an example of query usage.
+
+Parallel operations and queries require an IG assigned to the NamedMap. If an IG was previously constructed to run a ScaleOut hServer job, it can be reused, as in the following example.
+
+Sample Program: Modified WordCount example
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The following program is a modified WordCount example which illustrates many of the approaches outlined in previous sections:
+
+* It uses the _NamedMap_ as input and output for a ScaleOut hServer job,
+* It implements a custom _Writable_ serialization, and
+* It performs a parallel query of the output map to determine which words are used more frequently than a provided threshold.
+
+[source,java]
+---------------------------------------------------------------------
+package com.scaleoutsoftware.soss.hserver.examples;
+
+import com.scaleoutsoftware.soss.client.InvocationGrid;
+import com.scaleoutsoftware.soss.client.InvokeException;
+import com.scaleoutsoftware.soss.client.map.NamedMap;
+import com.scaleoutsoftware.soss.client.map.NamedMapFactory;
+import com.scaleoutsoftware.soss.client.map.QueryCondition;
+import com.scaleoutsoftware.soss.hserver.GridOutputFormat;
+import com.scaleoutsoftware.soss.hserver.HServerJob;
+import com.scaleoutsoftware.soss.hserver.NamedMapInputFormat;
+import com.scaleoutsoftware.soss.hserver.WritableSerializer;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.util.GenericOptionsParser;
+
+import java.io.IOException;
+import java.util.StringTokenizer;
+
+
+public class NamedMapWordCount {
+    public static class TokenizerMapper
+            extends Mapper<Object, Text, Text, IntWritable> {
+
+        private final static IntWritable one = new IntWritable(1);
+        private Text word = new Text();
+
+        public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
+            StringTokenizer itr = new StringTokenizer(value.toString());
+            while (itr.hasMoreTokens()) {
+                word.set(itr.nextToken());
+                context.write(word, one);
+            }
+        }
+    }
+
+    public static class IntSumReducer
+            extends Reducer<Text, IntWritable, Text, IntWritable> {
+        private IntWritable result = new IntWritable();
+
+        public void reduce(Text key, Iterable<IntWritable> values,
+                           Context context
+        ) throws IOException, InterruptedException {
+            int sum = 0;
+            for (IntWritable val : values) {
+                sum += val.get();
+            }
+            result.set(sum);
+            context.write(key, result);
+        }
+    }
+
+    public static void main(String[] args) throws Exception {
+        Configuration conf = new Configuration();
+        String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
+        if (otherArgs.length != 3) {
+            System.err.println("Usage: wordcount <input map> <output map> <threshold>");
+            System.exit(2);
+        }
+
+        final int threshold = new Integer(otherArgs[2]);
+
+        //Create named maps
+        NamedMap<IntWritable, Text> inputMap = NamedMapFactory.getMap(otherArgs[0],
+                new WritableSerializer<IntWritable>(IntWritable.class),
+                new WritableSerializer<Text>(Text.class));
+
+        NamedMap<Text, IntWritable> outputMap = NamedMapFactory.getMap(otherArgs[1],
+                new WritableSerializer<Text>(Text.class),
+                new WritableSerializer<IntWritable>(IntWritable.class));
+        outputMap.clear(); //clear output map
+
+        //Create the invocation grid
+        InvocationGrid grid = HServerJob.getInvocationGridBuilder("WordCountIG").
+                addJar("myjob.jar").
+                load();
+
+        //Create hServer job
+        Job job = new HServerJob(conf, "word count", false, grid);
+        job.setJarByClass(NamedMapWordCount.class);
+        job.setMapperClass(TokenizerMapper.class);
+        job.setCombinerClass(IntSumReducer.class);
+        job.setReducerClass(IntSumReducer.class);
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(IntWritable.class);
+        job.setInputFormatClass(NamedMapInputFormat.class);
+        job.setOutputFormatClass(GridOutputFormat.class);
+
+        //Set named maps as input and output
+        NamedMapInputFormat.setNamedMap(job, inputMap);
+        GridOutputFormat.setNamedMap(job, outputMap);
+
+        //Execute job
+        job.waitForCompletion(true);
+
+        //Assign invocation grid to the map, so parallel operation can be performed
+        outputMap.setInvocationGrid(grid);
+
+        //Run query to find words that are used more than threshold frequency
+        Iterable<Text> words = outputMap.runQuery(new UsageFrequencyCondition(threshold));
+
+        //Unload the invocation grid
+        grid.unload();
+
+        //Output resulting words and their frequencies
+        System.out.println("Following words were used more than " + threshold + " times:");
+        for(Text word : words)
+        {
+            System.out.println("\""+word.toString()+"\" was used " + outputMap.get(word) + " times.");
+        }
+    }
+
+    //Implementation of the query condition. Condition is true if
+    //the usage frequency exceeds threshold frequency
+    static class UsageFrequencyCondition implements QueryCondition<Text, IntWritable>
+    {
+        private int frequency;
+
+        UsageFrequencyCondition(int frequency) {
+            this.frequency = frequency;
+        }
+
+        @Override
+        public boolean check(Text key, IntWritable value) throws InvokeException {
+            return value.get() > frequency;
+        }
+    }
+}
+---------------------------------------------------------------------
+
+Using ScaleOut hServer as an HDFS Cache
+---------------------------------------
+
+ScaleOut hServer enables key/value pairs read from HDFS or another source to be cached within its IMDG to reduce data access time on subsequent MapReduce runs with the same data set. This is accomplished by wrapping the original input format with ScaleOut hServer's dataset input format to create a Dataset Record Reader. If the specified data set is not already stored within the IMDG or if it has been modified, the Dataset Record Reader intercepts key/value pairs as they flow into the mapper and caches them within the IMDG. On subsequent runs in which the data set is available within the IMDG, the Dataset Record Reader retrieves key/value pairs from the IMDG, bypassing the underlying record reader, and serves them to the mapper. The above diagram conceptually shows how the Dataset Record Reader is used to wrap the underlying record reader and integrate with ScaleOut hServer's IMDG.
+
+image::images/fig6_hserver_cache_usage.png[align="center",width=400,link="images/fig6_hserver_cache_usage.png"]
+Dataset Input Format
+~~~~~~~~~~~~~~~~~~~~
+
+To enable the Dataset Record Reader, the original input format should be replaced with the Dataset Input Format of type _DatasetInputFormat_. The original input format is then passed to the Dataset Input Format as a configuration property.
+
+The following example illustrates the necessary changes in the program code to configure the Dataset Input Format:
+
+.Original Code
+[source,java]
+---------------------------------------------------------------------
+job.setInputFormatClass(TextInputFormat.class);
+---------------------------------------------------------------------
+
+.Modified Code
+[source,java]
+---------------------------------------------------------------------
+job.setInputFormatClass(DatasetInputFormat.class);
+DatasetInputFormat.setUnderlyingInputFormat(job, TextInputFormat.class);
+---------------------------------------------------------------------
+
+Note that in current version of ScaleOut hServer, only file-based input formats which subclass _FileInputFormat_ are supported as underlying input formats.
+
+Handling Modifications to the Input Files
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When splits are created by the Dataset Input Format, the modification times of the input file(s) are compared to the modification times recorded in the IMDG. If these times do not match, one of the two actions can be taken based on the _EnableAppends_ property, which can be set with _DatasetInputFormat.setEnableAppends(...)_.
+
+If this property is set to the default value of _false_, the cached data set within the IMDG is deleted, and a new set of splits is calculated based on the new file. This set of splits is recorded in the IMDG during the subsequent job run. If the file is deleted and replaced by another file, the property should be _false_ to avoid allowing the dataset input format to serve recorded splits from the old file.
+
+If the property is set to _true_, it is assumed that the file was appended. The dataset input format will use the splits that were already recorded and add splits corresponding to the appended portion of the file by reading from HDFS and recording the splits on the next run.
+
+Dataset Input Format Optimization for _Text_ Key/Value Pairs of Known Length
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If the key and value produced by underlying input format is a _Text_ object, and there is a known fixed size for keys and values, both server memory consumption and deserialization overhead can be optimized by storing _Text_ contiguously in a buffer; this avoids storing the length of each individual object.
+
+To take advantage of this optimization, the object sizes in bytes should be set in the job configuration by using the _setTextKeyValueSize(...)_ method of _DatasetInputFormat_:
+
+[source,java]
+---------------------------------------------------------------------
+job.setInputFormatClass(DatasetInputFormat.class);
+DatasetInputFormat.setUnderlyingInputFormat(job, TextInputFormat.class);
+DatasetInputFormat.setTextKeyValueSize(job, 10, 90);
+---------------------------------------------------------------------
+
+Memory Usage
+~~~~~~~~~~~~
+
+Sufficient physical memory should be provisioned for the IMDG to store the data set objects and their replicas. If the IMDG runs out of memory during the recording phase, the affected splits will not be recorded and instead will be read from HDFS using the underlying record reader on the next run. Although this behavior will impact access time, it is recommended that the maximum memory usage by the IMDG be limited by setting the _max_memory_ parameter in the 'soss_params.txt' file on every server in the cluster. Setting this parameter ensures that adequate physical memory is provisioned for the Hadoop infrastructure and MapReduce jobs.
+
+If additional servers running ScaleOut hServer are added to the cluster, the cached data sets will be automatically rebalanced across all servers to take advantage of the larger IMDG. This will move some of the cached splits to new servers for access by additional Hadoop mappers to increase the overall throughput of the MapReduce run.
+
+Managing Cached Data Sets in the IMDG
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The _soss_ command line control program can be used to manage HDFS data sets cached within the IMDG. To list the set of cached data sets, use the `soss show_ds` command:
+
+---------------------------------------------------------------------
+$ soss show_ds
+1 HDFS cached data sets found
+        Dataset ID:   1689276489 -- Name: com.scaleoutsoftware.soss.hserver.
+FileImageorg.apache.hadoop.mapreduce.lib.input.TextInputFormathdfs://10.0.4.2
+7/tmp/in/part1hdfs://10.0.4.27/tmp/in/part2
+---------------------------------------------------------------------
+
+To remove a cached data set, use the `soss remove_ds` command and either specify the data set identifier or specify "all" to remove all data sets:
+
+---------------------------------------------------------------------
+$ soss remove_ds all
+Removing Dataset ID:   1689276489
+---------------------------------------------------------------------
+
+Performance Optimizations in the Dataset Record Reader
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The Dataset Record Reader is designed to store key/value pairs in the IMDG with minimum network overhead and maximum storage efficiency. By using splits defined for the HDFS file, it creates "chunks" of key/pairs in the IMDG using overlapped updates to the IMDG while each HDFS record reader reads from the HDFS file and supplies key/value pairs to its mapper. These chunks are stored as highly available objects within the IMDG.
+
+image::images/fig7_hserver_detail_1.png[align="center",link="images/fig7_hserver_detail_1.png"]
+
+Likewise, on subsequent Hadoop MapReduce runs in which key/value pairs are available in the IMDG, the Dataset Record Reader bypasses the underlying HDFS record reader and supplies key/value pairs from the IMDG. ScaleOut hServer uses the same set of splits to efficiently retrieve the key/value chunks from the IMDG in an overlapped manner that minimizes latency. To minimize network overhead, chunks are served from the ScaleOut hServer service process running on the same Hadoop worker node as the requesting mapper.
+
+image::images/fig8_hserver_detail_2.png[align="center",link="images/fig8_hserver_detail_2.png"]
+
+[[hive]]
+Running Apache Hive on hServer
+------------------------------
+ScaleOut hServer can be used as an execution engine for Apache Hive. Apache Hive translates queries into a series of MapReduce jobs, which can then be configured to run on ScaleOut hServer. Running Apache Hive queries through ScaleOut hServer provides significant performance improvements by eliminating intermediate disk I/O for MapReduce and reusing JVMs. ScaleOut hServer is designed to accelerate query performance for datasets which can be processed in-memory.
+
+ScaleOut hServer supports existing distributions of Apache Hive, so the only configuration change required is to configure Hadoop/Hive to use ScaleOut hServer as an execution engine.
+
+Follow the below procedure to configure Hive to use ScaleOut hServer as the MapReduce execution engine:
+
+. Install and configure ScaleOut hServer as described in <<install, Installation of the IMDG>>.
+. Configure ScaleOut hServer to run as an execution engine for the YARN cluster, as described in <<yarn, Running existing Hadoop applications>>.
+. Set the _mapred.job.tracker_ configuration property to _none_.
+
+The following example directs the Hive query to run using ScaleOut hServer:
+-------------------------------------------------------------------------------------------------------------
+$ hive --hiveconf mapreduce.framework.name=hserver-yarn \
+    --hiveconf mapred.job.tracker=none \
+    -e 'SELECT SUBSTR(sourceIP, 1, 12), SUM(adRevenue) FROM uservisits GROUP BY SUBSTR(sourceIP, 1, 12);'
+--------------------------------------------------------------------------------------------------------------
+
+[NOTE]
+You can switch between ScaleOut hServer and standard YARN by setting the value of _mapreduce.framework.name_. This can be helpful for large queries which do not fit in memory and cannot run using ScaleOut hServer.
+[NOTE]
+Apache Hive installations configured to run with Apache Tez are not currently supported.
+
+Querying a NamedMap with Apache Hive
+------------------------------------
+ScaleOut hServer implements the Apache Hive storage handler to provide a *read-only* Hive table view of the NamedMap. It maps Java object properties stored in the NamedMap to Hive table columns, allowing HQL queries on the objects stored in the NamedMap. Hive cannot modify the NamedMap or its data.
+
+To create the table view of the NamedMap, use a Hive 'CREATE TABLE' statement with the following requirements:
+
+. The column names should correspond to the Java object property getter name (e.g., _getFoo()_ getter should correspond to column named _foo_ ). It is not required to define columns for all properties; unmapped properties will be ignored.
+. The column type should match the corresponding property type.
+. The NamedMap name should be associated with the Hive table by setting the _hserver.map.name_ table property.
+. If custom serialization is necessary, the _CustomSerializer_ should be set via _hserver.value.serializer_ and _hserver.value.type_ (see the <<customserializer,following section>>). 
+
+To run distributed queries on the NamedMap, each SOSS node should have the necessary class definitions for value objects and custom serializers. This can be achieved by adding the JARs containing these definitions to the _--auxpath_ property in the Hive command line:
+
+---------------------------------------------------------------------------------------
+$ hive --auxpath /home/hiveuser/myjar.jar
+---------------------------------------------------------------------------------------
+
+ 
+Example: Shopping Cart
+~~~~~~~~~~~~~~~~~~~~~~
+To illustrate the concept of querying a NamedMap through Hive, let's create a Hive table representing a customer.
+
+First, we define the sample Java class representing the customer with properties _customerId_ (int), _firstName_ (String), _lastName_ (String), _login_ (String), and respective getter methods:
+
+[source,java]
+---------------------------------------------------------------------------------------
+public class Customer implements Serializable
+{
+    private int customerId;
+    private String firstName;
+    private String lastName;
+    private String login;
+
+    public Customer(int customerId, String firstName, String lastName, String login) {
+        this.customerId = customerId;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.login = login;
+    }
+
+    public int getCustomerId() {
+        return customerId;
+    }
+
+    public String getFirstName() {
+        return firstName;
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
+    public String getLogin() {
+        return login;
+    }
+}
+---------------------------------------------------------------------------------------
+
+If the _Customer_ instances are stored in a NamedMap with the name _customers_, we can use the following statement to create the Hive table view:
+
+[source, sql]
+----------------------------------------------------------------------------------------------
+hive> CREATE TABLE 
+customers (customerid int, firstname string, lastname string, login string)
+STORED BY 'com.scaleoutsoftware.soss.hserver.hive.HServerHiveStorageHandler' 
+TBLPROPERTIES ("hserver.map.name" = "customers");
+OK
+Time taken: 0.508 seconds
+----------------------------------------------------------------------------------------------
+
+Hive now has a table view of the NamedMap and can run queries against it. Example:
+
+[source, sql]
+----------------------------------------------------------------------------------------------
+hive> SELECT * FROM customers;
+..............................
+1       Eduardo     Hazelrigg       ehazelrigg
+13      Serena      Sadberry        ssadberry
+9       Ermelinda   Manganaro       emanganaro
+5       Edda        Speir           espeir
+17      Tomeka      Stovall         tstovall
+21      Luciano     Perkinson       lperkinson
+25      Jacob       Garrow          jgarrow
+33      Quincy      Kreutzer        qkreutzer
+37      Iona        Speir           ispeir
+41      Ermelinda   Thielen         ethielen
+Time taken: 0.475 seconds, Fetched: 100 row(s)
+------------------------------------------------------------------------------------------------
+
+When finished querying the NamedMap, destroy the table view by calling _DROP TABLE_. This command only removes the associated table from the metastore; it does not clear the NamedMap. Example:
+
+[source, sql]
+----------------------------------------------------------------------------------------------
+hive> DROP TABLE customers
+OK
+Time taken: 0.18 seconds
+------------------------------------------------------------------------------------------------
+
+To illustrate joins between two NamedMaps, let's create another table based on a Java class which represents a shopping cart with the properties _customerId_ (int), _totalPrice_ (int), and a map of items in the shopping cart with each item's quantity as the map value: 
+
+[source,java]
+-----------------------------------------------------------------------------------------------
+public class ShoppingCart implements Serializable {
+    private int customerId;
+    private Map<String, Integer> items;
+    private int totalPrice;
+
+    public ShoppingCart(Integer customerName, Map<String, Integer> items, int totalPrice) {
+        this.customerId = customerName;
+        this.items = items;
+        this.totalPrice = totalPrice;
+    }
+
+    public int getCustomerId() {
+        return customerId;
+    }
+
+    public Map<String, Integer> getItems() {
+        return items;
+    }
+
+    public int getTotalPrice() {
+        return totalPrice;
+    }
+}
+-----------------------------------------------------------------------------------------------
+
+Create the Hive table view of the class with the following _CREATE TABLE_ statement. Notice that the Java Map type corresponds to the Hive _MAP_ type:
+
+[source, sql]
+----------------------------------------------------------------------------------------------
+hive>CREATE TABLE shoppingcarts(customerid int, totalprice int, items MAP<string, int>)
+STORED BY 'com.scaleoutsoftware.soss.hserver.hive.HServerHiveStorageHandler' 
+TBLPROPERTIES ("hserver.map.name" = "shoppingcarts");
+OK
+Time taken: 0.402 seconds
+----------------------------------------------------------------------------------------------
+
+After the table is created, we can run exploratory queries on the NamedMap. For example, this query lists all shopping carts containing more than 2 CPUs:
+
+[source, sql]
+----------------------------------------------------------------------------------------------
+hive> SELECT * FROM shoppingcarts WHERE items["CPU"]>2;
+..............................
+33      812     {"Motherboard":4,"CPU":3,"Printer":3,"Router":1,"Monitor":4}
+56      212     {"Mouse":4,"Router":3,"CPU":4}
+40      1284    {"Motherboard":1,"CPU":3,"Hard drive":1,"Keyboard":4,"Monitor":4}
+46      689     {"Motherboard":2,"CPU":3,"Printer":1,"Mouse":2,"Router":1,"Monitor":3}
+64      567     {"Printer":3,"CPU":4,"Router":2,"Monitor":4}
+41      865     {"Monitor":1,"Motherboard":3,"Printer":3,"CPU":4,"Mouse":4,"Keyboard":4,"Router":2}
+52      166     {"CPU":3,"Keyboard":1}
+97      730     {"CPU":3,"Mouse":3,"Keyboard":1,"Monitor":2}
+29      671     {"Motherboard":1,"CPU":3,"Mouse":1,"Hard drive":1,"Keyboard":1,"Router":4}
+38      485     {"Printer":2,"CPU":4,"Hard drive":2,"Keyboard":3,"Router":1}
+36      797     {"Motherboard":2,"Monitor":4,"CPU":4}
+21      151     {"CPU":4}
+12      1044    {"Printer":4,"CPU":3,"Mouse":3,"Hard drive":4,"Keyboard":3,"Monitor":2}
+7       788     {"Hard drive":4,"Monitor":1,"Motherboard":3,"Printer":1,"CPU":4,"Mouse":1,"Keyboard":4}
+19      1144    {"Motherboard":1,"CPU":4,"Printer":2,"Router":3,"Monitor":2}
+63      284     {"CPU":4,"Printer":3}
+Time taken: 7.428 seconds, Fetched: 209 row(s)
+-----------------------------------------------------------------------------------------
+
+Finally, this query pulls data from both NamedMaps, joining them on the customer ID to find customers who have more than $5,000 in their shopping cart(s). We assume that a customer may have multiple shopping carts, so the total prices are summed: 
+
+[source, sql]
+----------------------------------------------------------------------------------------------
+hive>SELECT firstname, lastname
+FROM shoppingcarts LEFT JOIN customers ON shoppingcarts.customerid=customers.customerid 
+GROUP BY firstname, lastname, shoppingcarts.customerid
+HAVING SUM(totalprice)>5000;
+..............................
+Shelton Burgener
+Iona    Speir
+Paulita Liptak
+Quincy  Neher
+Jacob   Liptak
+Luciano Garrow
+Paulita Perkinson
+Lavada  Manganaro
+Edda    Thielen
+Edda    Garrow
+Lindsy  Knights
+Time taken: 34.216 seconds, Fetched: 42 row(s)
+-----------------------------------------------------------------------------------------------
+
+[[customserializer]]
+Creating a table view of NamedMap with custom serialization
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The provided storage handler supports NamedMaps which use custom serialization to store data. The custom serializer class name is provided to the storage handler by setting the _hserver.value.serializer_ property in the _CREATE TABLE_ statement. The optional _hserver.value.type_ property sets the value type passed by the storage handler to the _CustomSerializer_'s _setObjectClass()_ method. This property is used for serialization formats which do not record the object type in the stream (such as Hadoop Writables). Please refer to the ScaleOut StateServer Java Library documentation for more information about NamedMap custom serialization.
+
+In this example we create a class which implements Hadoop's _Writable_ interface and stores instances of that class in the NamedMap using the _WritableSerializer_ provided as part of the ScaleOut hServer library as a custom serializer:
+ 
+[source, java]
+-----------------------------------------------------------------------------------------------
+public class WritableType implements Writable {
+    private String stringProperty;
+    private int numProperty;
+
+    public int getNumProperty() {
+        return numProperty;
+    }
+
+    public String getStringProperty() {
+        return stringProperty;
+    }
+
+    @Override
+    public void write(DataOutput dataOutput) throws IOException {
+        dataOutput.writeUTF(stringProperty);
+        dataOutput.writeInt(numProperty);
+    }
+
+    @Override
+    public void readFields(DataInput dataInput) throws IOException {
+        stringProperty = dataInput.readUTF();
+        numProperty = dataInput.readInt();
+    }
+
+    public static void main(String argv[])
+    {
+        NamedMap<IntWritable, WritableType> namedMap =
+                NamedMapFactory.getMap("writableMap",
+                        new WritableSerializer(IntWritable.class),
+                        new WritableSerializer(WritableType.class));
+        IntWritable key = new IntWritable();
+        WritableType value = new WritableType();
+
+        for(int i = 0; i<1000; i++)
+        {
+            key.set(i);
+            value.numProperty = i;
+            value.stringProperty = "String # " + i;
+            namedMap.put(key, value);
+        }
+
+    }
+}
+-----------------------------------------------------------------------------------------------
+
+The following statement creates the Hive table view. Notice that the custom serializer's class name and the name of the serialized type is sent to the storage handler through _TBLPROPERTIES_:
+
+[source, sql]
+-----------------------------------------------------------------------------------------------
+hive>CREATE TABLE writableTable (stringproperty string, numproperty int) 
+STORED BY 'com.scaleoutsoftware.soss.hserver.hive.HServerHiveStorageHandler' 
+TBLPROPERTIES ("hserver.map.name" = "writableMap", 
+"hserver.value.serializer"="com.scaleoutsoftware.soss.hserver.WritableSerializer",
+"hserver.value.type"="WritableType");
+OK
+Time taken: 0.602 seconds
+------------------------------------------------------------------------------------------------
+
+The table is now ready to be queried:
+
+[source, sql]
+------------------------------------------------------------------------------------------------
+SELECT * FROM writableTable;
+..............................
+String # 959    959
+String # 963    963
+String # 967    967
+String # 971    971
+String # 975    975
+String # 979    979
+String # 983    983
+String # 987    987
+String # 991    991
+String # 995    995
+String # 999    999
+Time taken: 0.912 seconds, Fetched: 1000 row(s)
+------------------------------------------------------------------------------------------------

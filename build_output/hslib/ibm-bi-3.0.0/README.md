@@ -1,0 +1,1 @@
+Container directory for ScaleOut hServer's build output with support for IBM's BigInsights version 3.0.0.

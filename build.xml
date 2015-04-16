@@ -1,0 +1,667 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!-- 
+ Copyright (c) 2015 by ScaleOut Software, Inc.
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+ http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+ -->
+<project name="hserver" default="build_all">
+    <!-- Compiler options -->
+    <property name="compiler.debug" value="off"/>
+    <property name="compiler.generate.no.warnings" value="off"/>
+    <property name="compiler.args" value=""/>
+    <property name="compiler.max.memory" value="128m"/>
+    <property name="compiler.source.version" value="1.6"/>
+    <property name="compiler.target.version" value="1.6"/>
+    <patternset id="ignored.files">
+        <exclude name="**/CVS/**"/>
+        <exclude name="**/SCCS/**"/>
+        <exclude name="**/RCS/**"/>
+        <exclude name="**/rcs/**"/>
+        <exclude name="**/.DS_Store/**"/>
+        <exclude name="**/.svn/**"/>
+        <exclude name="**/.sbas/**"/>
+        <exclude name="**/.IJI.*/**"/>
+        <exclude name="**/vssver.scc/**"/>
+        <exclude name="**/vssver2.scc/**"/>
+    </patternset>
+    <patternset id="compiler.resources">
+        <include name="**/?*.properties"/>
+        <include name="**/?*.xml"/>
+        <include name="**/?*.gif"/>
+        <include name="**/?*.png"/>
+        <include name="**/?*.jpeg"/>
+        <include name="**/?*.jpg"/>
+        <include name="**/?*.html"/>
+        <include name="**/?*.dtd"/>
+        <include name="**/?*.tld"/>
+    </patternset>
+	<property file="${basedir}/build.properties"/>
+	<property name="compiler.args.hserver" value="${compiler.args}"/>
+	
+	<!-- Modules -->
+	<!-- hServer -->
+	<!-- hServer Output Directory -->
+	<property name="hserver.output.dir" value="${basedir}/out"/>	
+	<!-- hServer Classpath -->
+    <path id="hserver.classpath.common">
+        <pathelement location="${basedir}/soss_lib/soss-jnc-${jar.version}.jar"/>
+        <fileset dir="${basedir}/third_party_lib/" includes="*.jar"/>
+    </path>
+	<!-- hServer Javadoc Classpath (uses Apache Hadoop 1.2.1) -->
+    <path id="hserver.classpath.javadoc">
+        <path refid="hserver.classpath.common"/>
+        <fileset dir="${basedir}/third_party_lib/hadoop-1.2.1/" includes="**/*.jar"/>
+		<fileset dir="${basedir}/build_output/hslib/hadoop-1.2.1" includes="soss-hserver-${jar.version}-hadoop-1.2.1.jar"/>
+    </path>
+	<!-- hServer Classpath for Compilation -->
+	<path id="hserver.classpath.compile">
+        <path refid="hserver.classpath.common"/>
+        <pathelement location="${basedir}/third_party_lib/junit-4.4.jar"/>
+        <pathelement location="${basedir}/third_party_lib/log4j-1.2.16.jar"/>
+    </path>
+	<!-- hServer ignore files -->
+    <patternset id="excluded.from.module.hserver">
+        <patternset refid="ignored.files"/>
+    </patternset>
+    <patternset id="excluded.from.compilation.hserver">
+        <patternset refid="excluded.from.module.hserver"/>
+    </patternset>
+	<!-- hServer Source Path -->
+    <path id="hserver.sourcepath">
+        <dirset dir="${basedir}">
+            <include name="open/src"/>
+        </dirset>
+    </path>	
+	<!-- hServer Javadoc -->
+	<target name="javadoc" description="Generate javadoc">
+        <javadoc
+				destdir="${hserver.output.dir}/javadoc"
+                packagenames="com.scaleoutsoftware.soss.hserver"
+                classpathref="hserver.classpath.javadoc"
+                bottom="Copyright (C) 2007-2015 ScaleOut Software, Inc."
+                >
+			<sourcefiles>
+                <fileset dir="open/src">
+                    <include name="**/*.java"/>
+                    <exclude name="**/hadoop/**"/> 
+					<exclude name="**/hive/**"/> 
+                    <exclude name="**/InvocationParameters.java"/> 
+                    <exclude name="**/RunHadoopMapContext.java"/>
+                </fileset>
+            </sourcefiles>
+            <link href="http://download.oracle.com/javase/6/docs/api/"/>
+            <arg value="-notimestamp"/>
+            <arg value="-public"/>
+        </javadoc>
+    </target>
+	<!-- hServer Javadoc JAR -->
+	<target name="jar-hserver" description="hServer Open Source Module and Javadoc JAR">
+		<jar    destfile="${hserver.output.dir}/soss-hserver-${jar.version}-src.jar"
+				basedir="${hserver.output.dir}/../open/src"
+				includes="com/**"
+				/>
+		<jar    destfile="${hserver.output.dir}/soss-hserver-${jar.version}-javadoc.jar"
+				basedir="${hserver.output.dir}/javadoc"
+				includes="**"
+				/>
+	</target>
+	<!-- hServer Open Source Module and Javadoc Copy -->
+	<target name="copy-hserver" description="hServer Open Source and Javadoc Copy">
+		<copy todir="${basedir}/build_output">
+            <fileset dir="${hserver.output.dir}" includes="*.jar"/>
+        </copy>
+	</target>
+	<target name="build-hserver" depends="javadoc, jar-hserver, copy-hserver" description=""/>
+
+    <!-- Distribution Source and Output Directories -->
+	<!-- Apache Hadoop version 1.2.1 -->
+	<!-- Apache Hadoop version 1.2.1 Output Directory -->
+    <property name="hserver.output.dir.hadoop-1.2.1" value="${basedir}/out_hadoop-1.2.1"/>
+	<!-- Apache Hadoop version 1.2.1 Classpath -->
+    <path id="hserver.classpath.hadoop-1.2.1">
+        <path refid="hserver.classpath.compile"/>
+        <fileset dir="${basedir}/third_party_lib/hadoop-1.2.1/" includes="**/*.jar"/>
+    </path>
+	<!-- Apache Hadoop version 1.2.1 Source Path -->
+	<path id="hserver.sourcepath.hadoop-1.2.1">
+        <dirset dir="${basedir}">
+            <include name="distribution_specific/hadoop-1.2.1/src"/>
+        </dirset>
+    </path>
+	<!-- Apache Hadoop version 1.2.1 Compilation -->
+	<target name="compile-hadoop-1.2.1" description="Compile module for Hadoop 1.2.1">
+        <mkdir dir="${hserver.output.dir.hadoop-1.2.1}"/>
+        <javac
+                destdir="${hserver.output.dir.hadoop-1.2.1}"
+                debug="${compiler.debug}"
+                nowarn="${compiler.generate.no.warnings}"
+                memorymaximumsize="${compiler.max.memory}"
+                source="${compiler.source.version}"
+                target="${compiler.target.version}"
+                fork="true"
+				>
+            <compilerarg line="${compiler.args.hserver}"/>
+            <classpath refid="hserver.classpath.hadoop-1.2.1"/>
+            <src refid="hserver.sourcepath"/>
+            <src refid="hserver.sourcepath.hadoop-1.2.1"/>
+            <patternset refid="excluded.from.compilation.hserver"/>
+        </javac>
+    </target>
+	<!-- Apache Hadoop version 1.2.1 JAR -->
+	<target name="jar-hadoop-1.2.1" description="JAR module for Hadoop 1.2.1">
+		<jar 	destfile="${hserver.output.dir.hadoop-1.2.1}/soss-hserver-${jar.version}-hadoop-1.2.1.jar"
+				basedir="${hserver.output.dir.hadoop-1.2.1}"
+				includes="com/**"
+				excludes="**/examples/** **/testApp/** **/Test_**"
+				/>
+	</target>
+	<!-- Apache Hadoop version 1.2.1 Copy -->
+	<target name="copy-hadoop-1.2.1" description="Copy JAR for Hadoop 1.2.1">
+		<copy todir="${basedir}/build_output/hslib/hadoop-1.2.1">
+            <fileset dir="${hserver.output.dir.hadoop-1.2.1}" includes="*.jar"/>
+        </copy>
+	</target>
+	<!-- Apache Hadoop version 1.2.1 Build -->
+	<target name="build-hadoop-1.2.1" depends="compile-hadoop-1.2.1, jar-hadoop-1.2.1, copy-hadoop-1.2.1" description="Build and Deploy hServer for Hadoop 1.2.1"/>
+	
+				
+	<!-- Apache Hadoop version 2.4.1 (YARN) -->
+	<!-- Apache Hadoop version 2.4.1 (YARN) Output Directory -->
+    <property name="hserver.output.dir.hadoop-2.4.1" value="${basedir}/out_hadoop-2.4.1"/>
+	<!-- Apache Hadoop version 2.4.1 (YARN) Classpath -->
+	<path id="hserver.classpath.hadoop-2.4.1">
+		<path refid="hserver.classpath.compile"/>
+        <fileset dir="${basedir}/third_party_lib/hadoop-2.4.1/" includes="*.jar"/>
+    </path>
+	<!-- Apache Hadoop version 2.4.1 (YARN) Source Path -->
+	<path id="hserver.sourcepath.hadoop-2.4.1">
+        <dirset dir="${basedir}">
+            <include name="distribution_specific/hadoop-2.4.1/src"/>
+        </dirset>
+    </path>
+	<!-- Apache Hadoop version 2.4.1 (YARN) Compilation -->
+    <target name="compile-hadoop-2.4.1" description="Compile module for Hadoop 2.4.1">
+        <mkdir dir="${hserver.output.dir.hadoop-2.4.1}"/>
+        <javac
+                destdir="${hserver.output.dir.hadoop-2.4.1}"
+                debug="${compiler.debug}"
+                nowarn="${compiler.generate.no.warnings}"
+                memorymaximumsize="${compiler.max.memory}"
+                source="${compiler.source.version}"
+                target="${compiler.target.version}"
+                fork="true"
+				>
+            <compilerarg line="${compiler.args.hserver}"/>
+            <classpath refid="hserver.classpath.hadoop-2.4.1"/>
+            <src refid="hserver.sourcepath"/>
+            <src refid="hserver.sourcepath.hadoop-2.4.1"/>
+            <patternset refid="excluded.from.compilation.hserver"/>
+        </javac>
+    </target>
+	<!-- Apache Hadoop version 2.4.1 (YARN) JAR -->
+	<target name="jar-hadoop-2.4.1" description="JAR module for Hadoop 2.4.1">
+		<jar 	destfile="${hserver.output.dir.hadoop-2.4.1}/soss-hserver-${jar.version}-hadoop-2.4.1.jar"
+				basedir="${hserver.output.dir.hadoop-2.4.1}"
+				includes="com/**"
+				excludes="**/examples/** **/testApp/** **/Test_**"
+				/>
+	</target>
+	<!-- Apache Hadoop version 2.4.1 (YARN) Copy -->
+	<target name="copy-hadoop-2.4.1" description="Copy JAR for Hadoop 2.4.1">
+		<copy todir="${basedir}/build_output/hslib/hadoop-2.4.1">
+			<fileset dir="${hserver.output.dir.hadoop-2.4.1}" includes="*.jar"/>
+		</copy>
+	</target>
+	<!-- Apache Hadoop version 2.4.1 (YARN) Build -->
+	<target name="build-hadoop-2.4.1" depends="compile-hadoop-2.4.1, jar-hadoop-2.4.1, copy-hadoop-2.4.1" description="Build and Deploy hServer for Hadoop 2.4.1"/>
+	
+	<!-- Cloudera's Distribution of Apache Hadoop version 4.4.0 -->
+	<!-- Cloudera's Distribution of Apache Hadoop version 4.4.0 Output Directory -->
+    <property name="hserver.output.dir.cdh4.4.0" value="${basedir}/out_cdh4.4.0"/>
+	<!-- Cloudera's Distribution of Apache Hadoop version 4.4.0 Classpath -->
+    <path id="hserver.classpath.cdh4.4.0">
+        <path refid="hserver.classpath.compile"/>
+        <fileset dir="${basedir}/third_party_lib/cdh4.4.0/" includes="*.jar"/>
+    </path>
+	<!-- Cloudera's Distribution of Apache Hadoop version 4.4.0 Source Path -->
+	<path id="hserver.sourcepath.cdh4.4.0">
+        <dirset dir="${basedir}">
+            <include name="distribution_specific/cdh4.4.0/src"/>
+        </dirset>
+    </path>
+	<!-- Cloudera's Distribution of Apache Hadoop version 4.4.0 Compilation -->
+	<target name="compile-cdh4.4.0" description="Compile module for CDH4.4.0">
+        <mkdir dir="${hserver.output.dir.cdh4.4.0}"/>
+        <javac
+                destdir="${hserver.output.dir.cdh4.4.0}"
+                debug="${compiler.debug}"
+                nowarn="${compiler.generate.no.warnings}"
+                memorymaximumsize="${compiler.max.memory}"
+                source="${compiler.source.version}"
+                target="${compiler.target.version}"
+                fork="true"
+				>
+            <compilerarg line="${compiler.args.hserver}"/>
+            <classpath refid="hserver.classpath.cdh4.4.0"/>
+            <src refid="hserver.sourcepath"/>
+            <src refid="hserver.sourcepath.cdh4.4.0"/>
+            <patternset refid="excluded.from.compilation.hserver"/>
+        </javac>
+    </target>
+	<!-- Cloudera's Distribution of Apache Hadoop version 4.4.0 JAR -->
+	<target name="jar-cdh4.4.0" description="JAR module for CDH4.4.0">
+		<jar 	destfile="${hserver.output.dir.cdh4.4.0}/soss-hserver-${jar.version}-cdh4.4.0.jar"
+				basedir="${hserver.output.dir.cdh4.4.0}"
+				includes="com/**"
+				excludes="**/examples/** **/testApp/** **/Test_**"
+				/>
+	</target>
+	<!-- Cloudera's Distribution of Apache Hadoop version 4.4.0 Copy -->
+	<target name="copy-cdh4.4.0" description="Copy JAR for CDH4.4.0">
+		<copy todir="${basedir}/build_output/hslib/cdh4.4.0">
+			<fileset dir="${hserver.output.dir.cdh4.4.0}" includes="*.jar"/>
+		</copy>
+	</target>
+	<!-- Cloudera's Distribution of Apache Hadoop version 4.4.0 Build -->
+	<target name="build-cdh4.4.0" depends="compile-cdh4.4.0, jar-cdh4.4.0, copy-cdh4.4.0" description="Build and Deploy hServer for CDH4.4.0"/>
+	
+	<!-- Cloudera's Distribution of Apache Hadoop version 5.0.2 -->
+	<!-- Cloudera's Distribution of Apache Hadoop version 5.0.2 Output Directory -->
+    <property name="hserver.output.dir.cdh5.0.2" value="${basedir}/out_cdh5.0.2"/>
+	<!-- Cloudera's Distribution of Apache Hadoop version 5.0.2 Classpath -->
+	<path id="hserver.classpath.cdh5.0.2">
+        <path refid="hserver.classpath.compile"/>
+        <fileset dir="${basedir}/third_party_lib/cdh5.0.2/" includes="*.jar"/>
+    </path>
+	<!-- Cloudera's Distribution of Apache Hadoop version 5.0.2 Source Path-->
+	<path id="hserver.sourcepath.cdh5.0.2">
+        <dirset dir="${basedir}">
+            <include name="distribution_specific/cdh5.0.2/src"/>
+        </dirset>
+    </path>
+	<!-- Cloudera's Distribution of Apache Hadoop version 5.0.2 Compilation -->
+	<target name="compile-cdh5.0.2" description="Compile module for CDH5">
+        <mkdir dir="${hserver.output.dir.cdh5.0.2}"/>
+        <javac
+                destdir="${hserver.output.dir.cdh5.0.2}"
+                debug="${compiler.debug}"
+                nowarn="${compiler.generate.no.warnings}"
+                memorymaximumsize="${compiler.max.memory}"
+                source="${compiler.source.version}"
+                target="${compiler.target.version}"
+                fork="true"
+                >
+            <compilerarg line="${compiler.args.hserver}"/>
+            <classpath refid="hserver.classpath.cdh5.0.2"/>
+            <src refid="hserver.sourcepath"/>
+            <src refid="hserver.sourcepath.cdh5.0.2"/>
+            <patternset refid="excluded.from.compilation.hserver"/>
+        </javac>
+		<copy todir="${hserver.output.dir.cdh5.0.2}">
+			<fileset dir="${basedir}/distribution_specific/cdh5.0.2/src"  includes="**/*.*" excludes="**/*.java"/>
+		</copy>
+    </target>
+	<!-- Cloudera's Distribution of Apache Hadoop version 5.0.2 JAR -->
+	<target name="jar-cdh5.0.2" description="JAR module for CDH5.0.2">
+		<jar 	destfile="${hserver.output.dir.cdh5.0.2}/soss-hserver-${jar.version}-cdh5.0.2.jar"
+				basedir="${hserver.output.dir.cdh5.0.2}"
+				includes="com/**"
+				excludes="**/examples/** **/testApp/** **/Test_**"
+				/>
+	</target>
+	<!-- Cloudera's Distribution of Apache Hadoop version 5.0.2 Copy -->
+	<target name="copy-cdh5.0.2" description="Copy JAR for CDH5.0.2">
+		<copy todir="${basedir}/build_output/hslib/cdh5.0.2">
+			<fileset dir="${hserver.output.dir.cdh5.0.2}" includes="*.jar"/>
+		</copy>
+	</target>
+	<!-- Cloudera's Distribution of Apache Hadoop version 5.0.2 Build -->
+	<target name="build-cdh5.0.2" depends="compile-cdh5.0.2, jar-cdh5.0.2, copy-cdh5.0.2" description="Build and Deploy hServer for CDH5.0.2"/>
+	
+	<!-- Cloudera's Distribution of Apache Hadoop version 5.0.2 YARN -->
+	<!-- Cloudera's Distribution of Apache Hadoop version 5.0.2 YARN Output Directory -->
+    <property name="hserver.output.dir.cdh5.0.2-yarn" value="${basedir}/out_cdh5.0.2-yarn"/>
+	<!-- Cloudera's Distribution of Apache Hadoop version 5.0.2 YARN Classpath -->
+    <path id="hserver.classpath.cdh5.0.2-yarn">
+        <path refid="hserver.classpath.compile"/>
+        <fileset dir="${basedir}/third_party_lib/cdh5.0.2-yarn/" includes="*.jar"/>
+    </path>
+	<!-- Cloudera's Distribution of Apache Hadoop version 5.0.2 YARN Source Path -->
+	<path id="hserver.sourcepath.cdh5.0.2-yarn">
+        <dirset dir="${basedir}">
+            <include name="distribution_specific/cdh5.0.2-yarn/src"/>
+        </dirset>
+    </path>
+	<!-- Cloudera's Distribution of Apache Hadoop version 5.0.2 YARN Compilation -->
+	<target name="compile-cdh5.0.2-yarn" description="Compile module for CDH5 - YARN">
+        <mkdir dir="${hserver.output.dir.cdh5.0.2-yarn}"/>
+        <javac
+                destdir="${hserver.output.dir.cdh5.0.2-yarn}"
+                debug="${compiler.debug}"
+                nowarn="${compiler.generate.no.warnings}"
+                memorymaximumsize="${compiler.max.memory}"
+                source="${compiler.source.version}"
+                target="${compiler.target.version}"
+                fork="true"
+                >
+            <compilerarg line="${compiler.args.hserver}"/>
+            <classpath refid="hserver.classpath.cdh5.0.2-yarn"/>
+            <src refid="hserver.sourcepath"/>
+            <src refid="hserver.sourcepath.cdh5.0.2-yarn"/>
+            <patternset refid="excluded.from.compilation.hserver"/>
+        </javac>
+		<copy todir="${hserver.output.dir.cdh5.0.2-yarn}">
+			<fileset dir="${basedir}/distribution_specific/cdh5.0.2-yarn/src"  includes="**/*.*" excludes="**/*.java"/>
+		</copy>
+    </target>
+	<!-- Cloudera's Distribution of Apache Hadoop version 5.0.2 YARN JAR -->
+	<target name="jar-cdh5.0.2-yarn" description="JAR module for CDH5.0.2 - YARN">
+		<jar 	destfile="${hserver.output.dir.cdh5.0.2-yarn}/soss-hserver-${jar.version}-cdh5.0.2-yarn.jar"
+				basedir="${hserver.output.dir.cdh5.0.2-yarn}"
+				includes="com/**"
+				excludes="**/examples/** **/testApp/** **/Test_**"
+				/>
+	</target>
+	<!-- Cloudera's Distribution of Apache Hadoop version 5.0.2 YARN Copy -->
+	<target name="copy-cdh5.0.2-yarn" description="Copy JAR for CDH5.0.2 - YARN">
+		<copy todir="${basedir}/build_output/hslib/cdh5.0.2-yarn">
+			<fileset dir="${hserver.output.dir.cdh5.0.2-yarn}" includes="*.jar"/>
+		</copy>
+	</target>
+	<!-- Cloudera's Distribution of Apache Hadoop version 5.0.2 YARN Build -->
+	<target name="build-cdh5.0.2-yarn" depends="compile-cdh5.0.2-yarn, jar-cdh5.0.2-yarn, copy-cdh5.0.2-yarn" description="Build and Deploy hServer for CDH5.0.2 YARN"/>
+	
+	<!-- Cloudera's Distribution of Apache Hadoop version 5.2.1 -->
+	<!-- Cloudera's Distribution of Apache Hadoop version 5.2.1 Output Directory -->
+    <property name="hserver.output.dir.cdh5.2.1" value="${basedir}/out_cdh5.2.1"/>
+    <!-- Cloudera's Distribution of Apache Hadoop version 5.2.1 Classpath -->
+	<path id="hserver.classpath.cdh5.2.1">
+        <path refid="hserver.classpath.compile"/>
+        <fileset dir="${basedir}/third_party_lib/cdh5.2.1/" includes="*.jar"/>
+    </path>
+	<!-- Cloudera's Distribution of Apache Hadoop version 5.2.1 Source Path -->
+	<path id="hserver.sourcepath.cdh5.2.1">
+        <dirset dir="${basedir}">
+            <include name="distribution_specific/cdh5.2.1/src"/>
+        </dirset>
+    </path>
+	<!-- Cloudera's Distribution of Apache Hadoop version 5.2.1 Compilation -->
+	<target name="compile-cdh5.2.1" description="Compile module for CDH5.2.1">
+        <mkdir dir="${hserver.output.dir.cdh5.2.1}"/>
+        <javac
+                destdir="${hserver.output.dir.cdh5.2.1}"
+                debug="${compiler.debug}"
+                nowarn="${compiler.generate.no.warnings}"
+                memorymaximumsize="${compiler.max.memory}"
+                source="${compiler.source.version}"
+                target="${compiler.target.version}"
+                fork="true"
+                >
+            <compilerarg line="${compiler.args.hserver}"/>
+            <classpath refid="hserver.classpath.cdh5.2.1"/>
+            <src refid="hserver.sourcepath"/>
+            <src refid="hserver.sourcepath.cdh5.2.1"/>
+            <patternset refid="excluded.from.compilation.hserver"/>
+        </javac>
+		<copy todir="${hserver.output.dir.cdh5.2.1}">
+			<fileset dir="${basedir}/distribution_specific/cdh5.2.1/src"  includes="**/*.*" excludes="**/*.java"/>
+		</copy>
+    </target>
+	<!-- Cloudera's Distribution of Apache Hadoop version 5.2.1 JAR -->
+	<target name="jar-cdh5.2.1" description="JAR module for CDH5.2.1">
+		<jar 	destfile="${hserver.output.dir.cdh5.2.1}/soss-hserver-${jar.version}-cdh5.2.1.jar"
+				basedir="${hserver.output.dir.cdh5.2.1}"
+				includes="com/**"
+				excludes="**/examples/** **/testApp/** **/Test_**"
+				/>
+	</target>
+	<!-- Cloudera's Distribution of Apache Hadoop version 5.2.1 Copy -->
+	<target name="copy-cdh5.2.1" description="Copy JAR for CDH5.2.1">
+		<copy todir="${basedir}/build_output/hslib/cdh5.2.1">
+			<fileset dir="${hserver.output.dir.cdh5.2.1}" includes="*.jar"/>
+		</copy>
+	</target>
+	<!-- Cloudera's Distribution of Apache Hadoop version 5.2.1 -->
+	<target name="build-cdh5.2.1" depends="compile-cdh5.2.1, jar-cdh5.2.1, copy-cdh5.2.1" description="Build and Deploy hServer for CDH5.2.1"/>
+	
+	<!-- Cloudera's Distribution of Apache Hadoop version 5.2.1 YARN -->
+	<!-- Cloudera's Distribution of Apache Hadoop version 5.2.1 YARN Output Directory -->
+    <property name="hserver.output.dir.cdh5.2.1-yarn" value="${basedir}/out_cdh5.2.1-yarn"/>
+	<!-- Cloudera's Distribution of Apache Hadoop version 5.2.1 YARN Classpath -->
+	<path id="hserver.classpath.cdh5.2.1-yarn">
+        <path refid="hserver.classpath.compile"/>
+        <fileset dir="${basedir}/third_party_lib/cdh5.2.1-yarn/" includes="*.jar"/>
+    </path>
+	<!-- Cloudera's Distribution of Apache Hadoop version 5.2.1 YARN Source Path -->
+	<path id="hserver.sourcepath.cdh5.2.1-yarn">
+        <dirset dir="${basedir}">
+            <include name="distribution_specific/cdh5.2.1-yarn/src"/>
+        </dirset>
+    </path>
+	<!-- Cloudera's Distribution of Apache Hadoop version 5.2.1 YARN Compilation -->
+	<target name="compile-cdh5.2.1-yarn" description="Compile module for CDH5.2.1 - YARN">
+        <mkdir dir="${hserver.output.dir.cdh5.2.1-yarn}"/>
+        <javac
+                destdir="${hserver.output.dir.cdh5.2.1-yarn}"
+                debug="${compiler.debug}"
+                nowarn="${compiler.generate.no.warnings}"
+                memorymaximumsize="${compiler.max.memory}"
+                source="${compiler.source.version}"
+                target="${compiler.target.version}"
+                fork="true"
+                >
+            <compilerarg line="${compiler.args.hserver}"/>
+            <classpath refid="hserver.classpath.cdh5.2.1-yarn"/>
+            <src refid="hserver.sourcepath"/>
+            <src refid="hserver.sourcepath.cdh5.2.1-yarn"/>
+            <patternset refid="excluded.from.compilation.hserver"/>
+        </javac>
+		<copy todir="${hserver.output.dir.cdh5.2.1-yarn}">
+			<fileset dir="${basedir}/distribution_specific/cdh5.2.1-yarn/src"  includes="**/*.*" excludes="**/*.java"/>
+		</copy>
+    </target>
+	<!-- Cloudera's Distribution of Apache Hadoop version 5.2.1 - YARN JAR -->
+	<target name="jar-cdh5.2.1-yarn" description="JAR module for CDH5.2.1 - YARN">
+		<jar 	destfile="${hserver.output.dir.cdh5.2.1-yarn}/soss-hserver-${jar.version}-cdh5.2.1-yarn.jar"
+				basedir="${hserver.output.dir.cdh5.2.1-yarn}"
+				includes="com/**"
+				excludes="**/examples/** **/testApp/** **/Test_**"
+				/>
+	</target>
+	<!-- Cloudera's Distribution of Apache Hadoop version 5.2.1 - YARN Copy -->
+	<target name="copy-cdh5.2.1-yarn" description="Copy JAR for CDH5.2.1 - YARN">
+		<copy todir="${basedir}/build_output/hslib/cdh5.2.1-yarn">
+			<fileset dir="${hserver.output.dir.cdh5.2.1-yarn}" includes="*.jar"/>
+		</copy>
+	</target>
+	<!-- Cloudera's Distribution of Apache Hadoop version 5.2.1 - YARN Build -->
+	<target name="build-cdh5.2.1-yarn" depends="compile-cdh5.2.1-yarn, jar-cdh5.2.1-yarn, copy-cdh5.2.1-yarn" description="Build and Deploy hServer for CDH5.2.1 YARN"/>
+    
+	<!-- Hortonworks Data Platform version 2.1 -->
+	<!-- Hortonworks Data Platform version 2.1 Output Directory -->
+    <property name="hserver.output.dir.hdp2.1-yarn" value="${basedir}/out_hdp2.1-yarn"/>
+	<!-- Hortonworks Data Platform version 2.1 Classpath -->
+	<path id="hserver.classpath.hdp2.1-yarn">
+        <path refid="hserver.classpath.compile"/>
+        <fileset dir="${basedir}/third_party_lib/hdp2.1-yarn/" includes="*.jar"/>
+    </path>
+	<!-- Hortonworks Data Platform version 2.1 Source Path -->
+	<path id="hserver.sourcepath.hdp2.1-yarn">
+        <dirset dir="${basedir}">
+            <include name="distribution_specific/hdp2.1-yarn/src"/>
+        </dirset>
+    </path>
+	<!-- Hortonworks Data Platform version 2.1 Compilation -->
+	<target name="compile-hdp2.1-yarn" description="Compile module for HDP2.1 - YARN">
+        <mkdir dir="${hserver.output.dir.hdp2.1-yarn}"/>
+        <javac
+                destdir="${hserver.output.dir.hdp2.1-yarn}"
+                debug="${compiler.debug}"
+                nowarn="${compiler.generate.no.warnings}"
+                memorymaximumsize="${compiler.max.memory}"
+                source="${compiler.source.version}"
+                target="${compiler.target.version}"
+                fork="true"
+                >
+            <compilerarg line="${compiler.args.hserver}"/>
+            <classpath refid="hserver.classpath.hdp2.1-yarn"/>
+            <src refid="hserver.sourcepath"/>
+            <src refid="hserver.sourcepath.hdp2.1-yarn"/>
+            <patternset refid="excluded.from.compilation.hserver"/>
+        </javac>
+		<copy todir="${hserver.output.dir.hdp2.1-yarn}">
+			<fileset dir="${basedir}/distribution_specific/hdp2.1-yarn/src"  includes="**/*.*" excludes="**/*.java"/>
+		</copy>
+    </target>
+	<!-- Hortonworks Data Platform version 2.1 JAR -->
+	<target name="jar-hdp2.1-yarn" description="JAR module for HDP 2.1">
+		<jar 	destfile="${hserver.output.dir.hdp2.1-yarn}/soss-hserver-${jar.version}-hdp2.1-yarn.jar"
+				basedir="${hserver.output.dir.hdp2.1-yarn}"
+				includes="com/**"
+				excludes="**/examples/** **/testApp/** **/Test_**"
+				/>
+	</target>
+	<!-- Hortonworks Data Platform version 2.1 Copy -->
+	<target name="copy-hdp2.1-yarn" description="Copy JAR for HDP 2.1 - YARN">
+		<copy todir="${basedir}/build_output/hslib/hdp2.1-yarn">
+			<fileset dir="${hserver.output.dir.hdp2.1-yarn}" includes="*.jar"/>
+		</copy>
+	</target>
+	<!-- Hortonworks Data Platform version 2.1 Build -->
+	<target name="build-hdp2.1-yarn" depends="compile-hdp2.1-yarn, jar-hdp2.1-yarn, copy-hdp2.1-yarn" description="Build and Deploy hServer for HDP2.1"/>
+    
+	<!-- Hortonworks Data Platform version 2.2 -->
+	<!-- Hortonworks Data Platform version 2.2 Output Directory -->
+    <property name="hserver.output.dir.hdp2.2-yarn" value="${basedir}/out_hdp2.2-yarn"/>
+	<!-- Hortonworks Data Platform version 2.2 Classpath-->
+	<path id="hserver.classpath.hdp2.2-yarn">
+        <path refid="hserver.classpath.compile"/>
+        <fileset dir="${basedir}/third_party_lib/hdp2.2-yarn/" includes="*.jar"/>
+    </path>
+	<!-- Hortonworks Data Platform version 2.2 Source Path -->
+	<path id="hserver.sourcepath.hdp2.2-yarn">
+        <dirset dir="${basedir}">
+            <include name="distribution_specific/hdp2.2-yarn/src"/>
+        </dirset>
+    </path>
+	<!-- Hortonworks Data Platform version 2.2 Compilation-->
+	<target name="compile-hdp2.2-yarn" description="Compile module for HDP2.2 - YARN">
+        <mkdir dir="${hserver.output.dir.hdp2.2-yarn}"/>
+        <javac
+                destdir="${hserver.output.dir.hdp2.2-yarn}"
+                debug="${compiler.debug}"
+                nowarn="${compiler.generate.no.warnings}"
+                memorymaximumsize="${compiler.max.memory}"
+                source="${compiler.source.version}"
+                target="${compiler.target.version}"
+                fork="true"
+                >
+            <compilerarg line="${compiler.args.hserver}"/>
+            <classpath refid="hserver.classpath.hdp2.2-yarn"/>
+            <src refid="hserver.sourcepath"/>
+            <src refid="hserver.sourcepath.hdp2.2-yarn"/>
+            <patternset refid="excluded.from.compilation.hserver"/>
+        </javac>
+		<copy todir="${hserver.output.dir.hdp2.2-yarn}">
+			<fileset dir="${basedir}/distribution_specific/hdp2.2-yarn/src"  includes="**/*.*" excludes="**/*.java"/>
+		</copy>
+    </target>
+	<!-- Hortonworks Data Platform version 2.2 JAR -->
+	<target name="jar-hdp2.2-yarn" description="JAR module for HDP 2.2">
+		<jar 	destfile="${hserver.output.dir.hdp2.2-yarn}/soss-hserver-${jar.version}-hdp2.2-yarn.jar"
+				basedir="${hserver.output.dir.hdp2.2-yarn}"
+				includes="com/**"
+				excludes="**/examples/** **/testApp/** **/Test_**"
+				/>
+	</target>
+	<!-- Hortonworks Data Platform version 2.2 Copy -->
+	<target name="copy-hdp2.2-yarn" description="Copy JAR for HDP 2.2 - YARN">
+		<copy todir="${basedir}/build_output/hslib/hdp2.2-yarn">
+			<fileset dir="${hserver.output.dir.hdp2.2-yarn}" includes="*.jar"/>
+		</copy>
+	</target>
+	<!-- Hortonworks Data Platform version 2.2 Build -->
+	<target name="build-hdp2.2-yarn" depends="compile-hdp2.2-yarn, jar-hdp2.2-yarn, copy-hdp2.2-yarn" description="Build and Deploy hServer for HDP2.2"/>
+    
+	<!-- IBM BigInsights version 3.0 -->
+	<!-- IBM BigInsights version 3.0 Output Directory -->
+    <property name="hserver.output.dir.ibm-bi-3.0.0" value="${basedir}/out_ibm-bi-3.0.0"/>
+	<!-- IBM BigInsights version 3.0 Classpath -->
+	<path id="hserver.classpath.ibm-bi-3.0.0">
+        <path refid="hserver.classpath.compile"/>
+        <fileset dir="${basedir}/third_party_lib/ibm-bi-3.0.0/" includes="*.jar"/>
+    </path>
+	<!-- IBM BigInsights version 3.0 Source Path -->
+	<path id="hserver.sourcepath.ibm-bi-3.0.0">
+        <dirset dir="${basedir}">
+            <include name="distribution_specific/ibm-bi-3.0.0/src"/>
+        </dirset>
+    </path>
+	<!-- IBM BigInsights version 3.0 Compilation -->
+	    <target name="compile-ibm-bi-3.0.0" description="Compile module for IBM - BigInsights - 3.0.0">
+        <mkdir dir="${hserver.output.dir.ibm-bi-3.0.0}"/>
+        <javac
+                destdir="${hserver.output.dir.ibm-bi-3.0.0}"
+                debug="${compiler.debug}"
+                nowarn="${compiler.generate.no.warnings}"
+                memorymaximumsize="${compiler.max.memory}"
+                source="${compiler.source.version}"
+                target="${compiler.target.version}"
+                fork="true"
+                >
+            <compilerarg line="${compiler.args.hserver}"/>
+            <classpath refid="hserver.classpath.ibm-bi-3.0.0"/>
+            <src refid="hserver.sourcepath"/>
+            <src refid="hserver.sourcepath.ibm-bi-3.0.0"/>
+            <patternset refid="excluded.from.compilation.hserver"/>
+        </javac>
+		<copy todir="${hserver.output.dir.ibm-bi-3.0.0}">
+			<fileset dir="${basedir}/distribution_specific/ibm-bi-3.0.0/src"  includes="**/*.*" excludes="**/*.java"/>
+		</copy>
+    </target>
+	<!-- IBM BigInsights version 3.0 JAR -->
+	<target name="jar-ibm-bi-3.0.0" description="JAR module for IBM - BigInsights - 3.0.0">
+		<jar 	destfile="${hserver.output.dir.ibm-bi-3.0.0}/soss-hserver-${jar.version}-ibm-bi-3.0.0.jar"
+				basedir="${hserver.output.dir.ibm-bi-3.0.0}"
+				includes="com/**"
+				excludes="**/examples/** **/testApp/** **/Test_**"
+				/>
+	</target>
+	<!-- IBM BigInsights version 3.0 Copy -->
+	<target name="copy-ibm-bi-3.0.0" description="Copy JAR for IBM - BigInsights - 3.0.0">
+		<copy todir="${basedir}/build_output/hslib/ibm-bi-3.0.0">
+			<fileset dir="${hserver.output.dir.ibm-bi-3.0.0}" includes="*.jar"/>
+		</copy>
+	</target>
+	<target name="build-ibm-bi-3.0.0" depends="compile-ibm-bi-3.0.0, jar-ibm-bi-3.0.0, copy-ibm-bi-3.0.0" description="Build and Deploy hServer for IBM BI 3.0"/>
+
+	<!-- Helper Build Targets -->
+    <target name="all" depends="clean, build_all" description="Build all"/>
+            
+    <target name="build_all" depends="build-hadoop-1.2.1, build-hadoop-2.4.1, build-cdh4.4.0, build-cdh5.0.2, build-cdh5.0.2-yarn, build-cdh5.2.1, build-cdh5.2.1-yarn, build-hdp2.1-yarn, build-hdp2.2-yarn, build-ibm-bi-3.0.0, build-hserver" description="Build and Deploy all supported Distributions"/>
+
+    <target name="clean" description="Clean up output">
+		<delete dir="${hserver.output.dir.hadoop-1.2.1}"/>
+		<delete dir="${hserver.output.dir.hadoop-2.4.1}"/>
+		<delete dir="${hserver.output.dir.cdh4.4.0}"/>
+		<delete dir="${hserver.output.dir.cdh5.0.2}"/>
+		<delete dir="${hserver.output.dir.cdh5.0.2-yarn}"/>
+		<delete dir="${hserver.output.dir.cdh5.2.1}"/>
+		<delete dir="${hserver.output.dir.cdh5.2.1-yarn}"/>
+		<delete dir="${hserver.output.dir.hdp2.1-yarn}"/>
+		<delete dir="${hserver.output.dir.hdp2.2-yarn}"/>
+		<delete dir="${hserver.output.dir.ibm-bi-3.0.0}"/>
+		<delete dir="${hserver.output.dir}"/>
+    </target>
+</project>
+

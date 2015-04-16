@@ -1,0 +1,1 @@
+Container directory for Apache Hadoop version 2.4.1's third-party JARs (with YARN support).

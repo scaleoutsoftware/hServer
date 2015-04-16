@@ -1,0 +1,5 @@
+ScaleOut hServer® 
+Copyright 2015 ScaleOut Software, Inc.
+
+This product includes software developed by
+The Apache Software Foundation (http://www.apache.org/).

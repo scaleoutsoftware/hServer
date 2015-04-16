@@ -1,0 +1,601 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+   <head>
+      
+      <meta http-equiv="X-UA-Compatible" content="IE=7" />
+      
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+      
+      <title>Sample Program: Modified WordCount example</title>
+      <meta name="generator" content="DocBook XSL Stylesheets V1.77.1" />
+      <link rel="home" href="index.html" title="ScaleOut hServer Java Programmer's Guide" />
+      <link rel="up" href="_storing_input_output_data_sets_in_the_imdg.html" title="Storing input/output data sets in the IMDG" />
+      <link rel="prev" href="_parallel_method_invocations_and_queries_on_the_namedmap.html" title="Parallel Method Invocations and Queries on the NamedMap" />
+      <link rel="next" href="_using_scaleout_hserver_as_an_hdfs_cache.html" title="Using ScaleOut hServer as an HDFS Cache" /><script type="text/javascript">
+            //The id for tree cookie
+            var treeCookieId = "treeview-1883";
+            var language = "en";
+            var w = new Object();
+            //Localization
+            txt_filesfound = 'Results';
+            txt_enter_at_least_1_char = "You must enter at least one character.";
+            txt_browser_not_supported = "JavaScript is disabled on your browser. Please enable JavaScript to enjoy all the features of this site.";
+            txt_please_wait = "Please wait. Search in progress...";
+            txt_results_for = "Results for: ";
+        </script><link rel="shortcut icon" href="../favicon.ico" type="image/x-icon" />
+      <link rel="stylesheet" type="text/css" href="../common/css/positioning.css" />
+      <link rel="stylesheet" type="text/css" href="../common/jquery/theme-redmond/jquery-ui-1.8.2.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../common/jquery/treeview/jquery.treeview.css" /><style type="text/css">
+noscript{
+      font-weight:bold;
+}
+input {
+    margin-bottom: 5px;
+    margin-top: 2px;
+}
+.folder {
+    display: block;
+    height: 22px;
+    padding-left: 20px;
+    background: transparent url(../common/jquery/treeview/images/folder.gif) 0 0px no-repeat;
+}
+span.contentsTab {
+    padding-left: 20px;
+    background: url(../common/images/toc-icon.png) no-repeat 0 center;
+}
+span.searchTab {
+    padding-left: 20px;
+    background: url(../common/images/search-icon.png) no-repeat 0 center;
+}
+
+/* Overide jquery treeview's defaults for ul. */
+.treeview ul {
+    background-color: transparent;
+    margin-top: 4px;
+}		
+#webhelp-currentid {
+    background-color: #D8D8D8 !important;
+}
+.treeview .hover { color: black; }
+.filetree li span a { text-decoration: none; font-size: 12px; color: #517291; }
+
+/* Override jquery-ui's default css customizations. These are supposed to take precedence over those.*/
+.ui-widget-content {
+    border: 0px; 
+    background: none; 
+    color: none;     
+}
+.ui-widget-header {
+    color: #e9e8e9;
+    border-left: 1px solid #e5e5e5;
+    border-right: 1px solid #e5e5e5;
+    border-bottom: 1px solid #bbc4c5;
+    border-top: 4px solid #e5e5e5;
+    border: medium none;
+    background: #F4F4F4; /* old browsers */
+    background: -moz-linear-gradient(top, #F4F4F4 0%, #E6E4E5 100%); /* firefox */
+    background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#F4F4F4), color-stop(100%,#E6E4E5)); /* webkit */    
+    font-weight: none;
+}
+.ui-widget-header a { color: none; }
+.ui-state-default, .ui-widget-content .ui-state-default, .ui-widget-header .ui-state-default { 
+border: none; background: none; font-weight: none; color: none; }
+.ui-state-default a, .ui-state-default a:link, .ui-state-default a:visited { color: black; text-decoration: none; }
+.ui-state-hover, .ui-widget-content .ui-state-hover, .ui-widget-header .ui-state-hover, .ui-state-focus, .ui-widget-content .ui-state-focus, .ui-widget-header .ui-state-focus { border: none; background: none; font-weight: none; color: none; }
+
+.ui-state-active, .ui-widget-content .ui-state-active, .ui-widget-header .ui-state-active { border: none; background: none; font-weight: none; color: none; }
+.ui-state-active a, .ui-state-active a:link, .ui-state-active a:visited { 
+    color: black; text-decoration: none; 	
+    background: #C6C6C6; /* old browsers */
+    background: -moz-linear-gradient(top, #C6C6C6 0%, #D8D8D8 100%); /* firefox */
+    background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#C6C6C6), color-stop(100%,#D8D8D8)); /* webkit */
+    -webkit-border-radius:15px; -moz-border-radius:10px;
+    border: 1px solid #f1f1f1;
+}    
+.ui-corner-all { border-radius: 0 0 0 0; }
+
+.ui-tabs { padding: .2em;}
+.ui-tabs .ui-tabs-nav li { top: 0px; margin: -2px 0 1px; text-transform: uppercase; font-size: 10.5px;}
+.ui-tabs .ui-tabs-nav li a { padding: .25em 2em .25em 1em; margin: .5em; text-shadow: 0 1px 0 rgba(255,255,255,.5); }
+
+
+        </style><script type="text/javascript" src="../common/browserDetect.js">
+         <!----></script><script type="text/javascript" src="../common/jquery/jquery-1.4.2.min.js">
+         <!----></script><script type="text/javascript" src="../common/jquery/jquery-ui-1.8.2.custom.min.js">
+         <!----></script><script type="text/javascript" src="../common/jquery/jquery.cookie.js">
+         <!----></script><script type="text/javascript" src="../common/jquery/treeview/jquery.treeview.min.js">
+         <!----></script><script type="text/javascript" src="search/l10n.js">
+         <!----></script><script type="text/javascript" src="search/htmlFileInfoList.js">
+         <!----></script><script type="text/javascript" src="search/nwSearchFnt.js">
+         <!----></script><script type="text/javascript" src="search/stemmers/en_stemmer.js">
+         <!--//make this scalable to other languages as well.--></script><script type="text/javascript" src="search/index-1.js">
+         <!----></script><script type="text/javascript" src="search/index-2.js">
+         <!----></script><script type="text/javascript" src="search/index-3.js">
+         <!----></script>
+      <!--[if IE]>
+<link rel="stylesheet" type="text/css" href="../common/css/ie.css"/>
+<![endif]--><style xmlns="" type="text/css">
+.programlisting, .screen
+{
+  border: 1px solid silver;
+  background: #f4f4f4;
+  margin: 0.5em 10% 0.5em 0;
+  padding: 0.5em 1em;
+  font-family: Consolas,Menlo,'Deja Vu Sans Mono','Bitstream Vera Sans Mono',monospace;
+  line-height: 1.5em;
+}
+
+
+
+#content h1 { font-size: 240%; }
+#content h2 { font-size: 180%; }
+#content h3 { font-size: 150%; }
+#content h4 { font-size: 130%; }
+#content h5 { font-size: 115%; }
+#content h6 { font-size: 100%; }
+
+#content h1, #content h2, #content h3, #content h4, #content h5, #content h6,
+div.title, caption.title,
+thead, p.table.header,
+#toctitle,
+#author, #revnumber, #revdate, #revremark,
+#footer {
+  font-family: Cambria, Georgia, Garmond, serif;
+  font-weight: normal;
+  border-bottom-width: 0;
+  color: #3E4349;
+}
+
+#content h5
+{
+  font-family: Verdana, Geneva, sans-serif;
+  font-style: italic;
+  font-weight: normal;
+  font-size: 10pt;
+  border-bottom-width: 0;
+  color: #3E4349;
+}
+
+#content h6
+{
+  font-family: Verdana, Geneva, sans-serif;
+  font-weight: bold;
+  font-size: 8pt;
+  border-bottom-width: 0;
+  color: #3E4349;
+}
+
+/* note header */
+#content th {
+  line-height: 1.2;
+  font-family: Cambria, Georgia, Garmond, serif;
+}
+
+#content
+{
+  padding-left: 15px;
+}
+
+#content p
+{
+  line-height: 1.4em;
+}
+
+#content a { color: #004B6B; text-decoration: none; border-bottom: 1px dotted #004B6B !important; }
+#content a:visited { color: #615FA0; border-bottom: 1px dotted #615FA0 !important; }
+#content a:hover { color: #6D4100; border-bottom: 1px solid #6D4100 !important; }
+
+div.note a, div.caution a, div.important a, div.tip a, div.warning a {
+    color: #004B6B !important; 
+    text-decoration: none !important; 
+    border-bottom: 1px dotted #004B6B !important;
+}
+
+
+.filetree li span a
+{
+  color: black;
+}
+
+#header h1
+{
+  margin-left: 150px;
+  font-family: Cambria, Georgia, Garmond, serif;
+  font-size: 180%;
+}
+
+#navheader
+{
+  background-color: white;
+}
+
+#content div.informaltable table {
+    border-collapse: collapse;
+    border-top: 3px solid #527bbd;
+    border-bottom: 3px solid #527bbd;
+    border-left: 3px solid #527bbd;
+    border-right: 3px solid #527bbd;
+}
+
+
+
+/*
+  Table styling does not work because of overriding attributes in
+  generated HTML.
+*/
+div.table table,
+div.informaltable table
+{
+    margin-left: 0;
+    margin-right: 5%;
+    margin-bottom: 0.8em;
+}
+div.informaltable table
+{
+    margin-top: 0.4em
+}
+div.table thead,
+div.table tfoot,
+div.table tbody,
+div.informaltable thead,
+div.informaltable tfoot,
+div.informaltable tbody
+{
+    /* No effect in IE6. */
+    border-top: 3px solid #527bbd;
+    border-bottom: 3px solid #527bbd;
+}
+div.table thead, div.table tfoot,
+#content div.informaltable thead, div.informaltable tfoot
+{
+    font-weight: bold;
+}
+
+#content table th {
+  background: white;
+  color: black;
+  line-height: 1.2;
+  font-size: 16px;
+}
+
+#content table td {
+  border-right: 1px solid #527bbd;
+  border-bottom: 1px solid #527bbd;
+}
+
+.caution p, .important p, .tip p, .warning p, .note p
+{
+  margin-bottom: 0;
+  margin-top: 0;
+}
+
+dt span.term {
+  font-style: normal;
+  color: navy;
+}
+
+tt.literal, code.literal {
+  color: navy;
+}
+
+body pre {
+  margin: 0.5em 10% 0.5em 1em;
+  line-height: 1.0;
+  color: navy;
+}
+
+/* Further tweaks to note styles are because of weird IE rendering */
+#content .caution table, #content .important table, #content .tip table, #content .warning table, #content .note table {
+  margin-bottom: 10px;
+  border: none;
+  
+}
+
+#content #content .caution th, #content .important th, #content .tip th, #content .warning th, #content .note th {
+  color: black;
+  background: white;
+  
+}
+
+#content #content .caution td, #content .important td, #content .tip td, #content .warning td, #content .note td {
+  border: none;
+  
+}
+
+#content div.variablelist dd p {
+  margin-top: 0;
+}
+
+#content dt span.term {
+  font-style: normal;
+  color: navy;
+}
+
+#content dt {
+  margin-top: 0.5em;
+}
+
+#content ul, li, body dir, body menu {
+  line-height: 1.4;
+}
+
+body li p {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+div.itemizedlist li, div.orderedlist li {
+  margin-left: -0.8em;
+  margin-top: 0.5em;
+}
+
+</style></head>
+   <body>
+      <div id="header"><a xmlns="" target="_blank" href="http://scaleoutsoftware.com/"><img style="margin-right: 2px; height: 59px; padding-right: 25px; padding-top: 8px" align="right" src="../common/images/logo.png" alt="ScaleOut Software Documentation" /></a><h1>ScaleOut hServer Java Programmer's Guide<br />Storing input/output data sets in the IMDG
+         </h1>
+         <div id="navheader">
+            <!---->
+            <table class="navLinks">
+               <tr>
+                  <td><a id="showHideButton" href="javascript:showHideToc();" class="pointLeft" tabindex="5" title="Hide TOC tree">Sidebar
+                                                    </a></td>
+                  <td><a accesskey="p" class="navLinkPrevious" tabindex="5" href="_parallel_method_invocations_and_queries_on_the_namedmap.html">Prev</a>
+                                                             |
+                                                             <a accesskey="u" class="navLinkUp" tabindex="5" href="_storing_input_output_data_sets_in_the_imdg.html">Up</a>
+                                                         |
+                                                         <a accesskey="n" class="navLinkNext" tabindex="5" href="_using_scaleout_hserver_as_an_hdfs_cache.html">Next</a></td>
+               </tr>
+            </table>
+         </div>
+      </div>
+      <div id="content">
+         <noscript>JavaScript is disabled on your browser. Please enable JavaScript to enjoy all the features of this site.</noscript>
+         <!---->
+         <div class="section">
+            <div xmlns="" class="titlepage">
+               <div>
+                  <div>
+                     <h3 xmlns="http://www.w3.org/1999/xhtml" class="title"><a id="_sample_program_modified_wordcount_example"></a>Sample Program: Modified WordCount example
+                     </h3>
+                  </div>
+               </div>
+            </div>
+            
+            
+            <p>The following program is a modified WordCount example which illustrates many of the approaches outlined in previous sections:</p>
+            
+            <div class="itemizedlist">
+               <ul class="itemizedlist" style="list-style-type: disc; ">
+                  <li class="listitem">
+                     
+                     It uses the <span class="emphasis"><em>NamedMap</em></span> as input and output for a ScaleOut hServer job,
+                     
+                     
+                  </li>
+                  <li class="listitem">
+                     
+                     It implements a custom <span class="emphasis"><em>Writable</em></span> serialization, and
+                     
+                     
+                  </li>
+                  <li class="listitem">
+                     
+                     It performs a parallel query of the output map to determine which words are used more frequently than a provided threshold.
+                     
+                     
+                  </li>
+               </ul>
+            </div>
+            <pre class="programlisting"><strong class="hl-keyword">package</strong> com.scaleoutsoftware.soss.hserver.examples;
+
+<strong class="hl-keyword">import</strong> com.scaleoutsoftware.soss.client.InvocationGrid;
+<strong class="hl-keyword">import</strong> com.scaleoutsoftware.soss.client.InvokeException;
+<strong class="hl-keyword">import</strong> com.scaleoutsoftware.soss.client.map.NamedMap;
+<strong class="hl-keyword">import</strong> com.scaleoutsoftware.soss.client.map.NamedMapFactory;
+<strong class="hl-keyword">import</strong> com.scaleoutsoftware.soss.client.map.QueryCondition;
+<strong class="hl-keyword">import</strong> com.scaleoutsoftware.soss.hserver.GridOutputFormat;
+<strong class="hl-keyword">import</strong> com.scaleoutsoftware.soss.hserver.HServerJob;
+<strong class="hl-keyword">import</strong> com.scaleoutsoftware.soss.hserver.NamedMapInputFormat;
+<strong class="hl-keyword">import</strong> com.scaleoutsoftware.soss.hserver.WritableSerializer;
+<strong class="hl-keyword">import</strong> org.apache.hadoop.conf.Configuration;
+<strong class="hl-keyword">import</strong> org.apache.hadoop.io.IntWritable;
+<strong class="hl-keyword">import</strong> org.apache.hadoop.io.Text;
+<strong class="hl-keyword">import</strong> org.apache.hadoop.mapreduce.Job;
+<strong class="hl-keyword">import</strong> org.apache.hadoop.mapreduce.Mapper;
+<strong class="hl-keyword">import</strong> org.apache.hadoop.mapreduce.Reducer;
+<strong class="hl-keyword">import</strong> org.apache.hadoop.util.GenericOptionsParser;
+
+<strong class="hl-keyword">import</strong> java.io.IOException;
+<strong class="hl-keyword">import</strong> java.util.StringTokenizer;
+
+
+<strong class="hl-keyword">public</strong> <strong class="hl-keyword">class</strong> NamedMapWordCount {
+    <strong class="hl-keyword">public</strong> <strong class="hl-keyword">static</strong> <strong class="hl-keyword">class</strong> TokenizerMapper
+            <strong class="hl-keyword">extends</strong> Mapper&lt;Object, Text, Text, IntWritable&gt; {
+
+        <strong class="hl-keyword">private</strong> <strong class="hl-keyword">final</strong> <strong class="hl-keyword">static</strong> IntWritable one = <strong class="hl-keyword">new</strong> IntWritable(<span class="hl-number">1</span>);
+        <strong class="hl-keyword">private</strong> Text word = <strong class="hl-keyword">new</strong> Text();
+
+        <strong class="hl-keyword">public</strong> <strong class="hl-keyword">void</strong> map(Object key, Text value, Context context) <strong class="hl-keyword">throws</strong> IOException, InterruptedException {
+            StringTokenizer itr = <strong class="hl-keyword">new</strong> StringTokenizer(value.toString());
+            <strong class="hl-keyword">while</strong> (itr.hasMoreTokens()) {
+                word.set(itr.nextToken());
+                context.write(word, one);
+            }
+        }
+    }
+
+    <strong class="hl-keyword">public</strong> <strong class="hl-keyword">static</strong> <strong class="hl-keyword">class</strong> IntSumReducer
+            <strong class="hl-keyword">extends</strong> Reducer&lt;Text, IntWritable, Text, IntWritable&gt; {
+        <strong class="hl-keyword">private</strong> IntWritable result = <strong class="hl-keyword">new</strong> IntWritable();
+
+        <strong class="hl-keyword">public</strong> <strong class="hl-keyword">void</strong> reduce(Text key, Iterable&lt;IntWritable&gt; values,
+                           Context context
+        ) <strong class="hl-keyword">throws</strong> IOException, InterruptedException {
+            <strong class="hl-keyword">int</strong> sum = <span class="hl-number">0</span>;
+            <strong class="hl-keyword">for</strong> (IntWritable val : values) {
+                sum += val.get();
+            }
+            result.set(sum);
+            context.write(key, result);
+        }
+    }
+
+    <strong class="hl-keyword">public</strong> <strong class="hl-keyword">static</strong> <strong class="hl-keyword">void</strong> main(String[] args) <strong class="hl-keyword">throws</strong> Exception {
+        Configuration conf = <strong class="hl-keyword">new</strong> Configuration();
+        String[] otherArgs = <strong class="hl-keyword">new</strong> GenericOptionsParser(conf, args).getRemainingArgs();
+        <strong class="hl-keyword">if</strong> (otherArgs.length != <span class="hl-number">3</span>) {
+            System.err.println(<span xmlns="" class="hl-string" style="color:DarkRed">"Usage: wordcount &lt;input map&gt; &lt;output map&gt; &lt;threshold&gt;"</span>);
+            System.exit(<span class="hl-number">2</span>);
+        }
+
+        <strong class="hl-keyword">final</strong> <strong class="hl-keyword">int</strong> threshold = <strong class="hl-keyword">new</strong> Integer(otherArgs[<span class="hl-number">2</span>]);
+
+        <span xmlns="" class="hl-comment" style="color: DarkGreen">//Create named maps</span>
+        NamedMap&lt;IntWritable, Text&gt; inputMap = NamedMapFactory.getMap(otherArgs[<span class="hl-number">0</span>],
+                <strong class="hl-keyword">new</strong> WritableSerializer&lt;IntWritable&gt;(IntWritable.<strong class="hl-keyword">class</strong>),
+                <strong class="hl-keyword">new</strong> WritableSerializer&lt;Text&gt;(Text.<strong class="hl-keyword">class</strong>));
+
+        NamedMap&lt;Text, IntWritable&gt; outputMap = NamedMapFactory.getMap(otherArgs[<span class="hl-number">1</span>],
+                <strong class="hl-keyword">new</strong> WritableSerializer&lt;Text&gt;(Text.<strong class="hl-keyword">class</strong>),
+                <strong class="hl-keyword">new</strong> WritableSerializer&lt;IntWritable&gt;(IntWritable.<strong class="hl-keyword">class</strong>));
+        outputMap.clear(); <span xmlns="" class="hl-comment" style="color: DarkGreen">//clear output map</span>
+
+        <span xmlns="" class="hl-comment" style="color: DarkGreen">//Create the invocation grid</span>
+        InvocationGrid grid = HServerJob.getInvocationGridBuilder(<span xmlns="" class="hl-string" style="color:DarkRed">"WordCountIG"</span>).
+                addJar(<span xmlns="" class="hl-string" style="color:DarkRed">"myjob.jar"</span>).
+                load();
+
+        <span xmlns="" class="hl-comment" style="color: DarkGreen">//Create hServer job</span>
+        Job job = <strong class="hl-keyword">new</strong> HServerJob(conf, <span xmlns="" class="hl-string" style="color:DarkRed">"word count"</span>, false, grid);
+        job.setJarByClass(NamedMapWordCount.<strong class="hl-keyword">class</strong>);
+        job.setMapperClass(TokenizerMapper.<strong class="hl-keyword">class</strong>);
+        job.setCombinerClass(IntSumReducer.<strong class="hl-keyword">class</strong>);
+        job.setReducerClass(IntSumReducer.<strong class="hl-keyword">class</strong>);
+        job.setOutputKeyClass(Text.<strong class="hl-keyword">class</strong>);
+        job.setOutputValueClass(IntWritable.<strong class="hl-keyword">class</strong>);
+        job.setInputFormatClass(NamedMapInputFormat.<strong class="hl-keyword">class</strong>);
+        job.setOutputFormatClass(GridOutputFormat.<strong class="hl-keyword">class</strong>);
+
+        <span xmlns="" class="hl-comment" style="color: DarkGreen">//Set named maps as input and output</span>
+        NamedMapInputFormat.setNamedMap(job, inputMap);
+        GridOutputFormat.setNamedMap(job, outputMap);
+
+        <span xmlns="" class="hl-comment" style="color: DarkGreen">//Execute job</span>
+        job.waitForCompletion(true);
+
+        <span xmlns="" class="hl-comment" style="color: DarkGreen">//Assign invocation grid to the map, so parallel operation can be performed</span>
+        outputMap.setInvocationGrid(grid);
+
+        <span xmlns="" class="hl-comment" style="color: DarkGreen">//Run query to find words that are used more than threshold frequency</span>
+        Iterable&lt;Text&gt; words = outputMap.runQuery(<strong class="hl-keyword">new</strong> UsageFrequencyCondition(threshold));
+
+        <span xmlns="" class="hl-comment" style="color: DarkGreen">//Unload the invocation grid</span>
+        grid.unload();
+
+        <span xmlns="" class="hl-comment" style="color: DarkGreen">//Output resulting words and their frequencies</span>
+        System.out.println(<span xmlns="" class="hl-string" style="color:DarkRed">"Following words were used more than "</span> + threshold + <span xmlns="" class="hl-string" style="color:DarkRed">" times:"</span>);
+        <strong class="hl-keyword">for</strong>(Text word : words)
+        {
+            System.out.println(<span xmlns="" class="hl-string" style="color:DarkRed">"\""</span>+word.toString()+<span xmlns="" class="hl-string" style="color:DarkRed">"\" was used "</span> + outputMap.get(word) + <span xmlns="" class="hl-string" style="color:DarkRed">" times."</span>);
+        }
+    }
+
+    <span xmlns="" class="hl-comment" style="color: DarkGreen">//Implementation of the query condition. Condition is true if</span>
+    <span xmlns="" class="hl-comment" style="color: DarkGreen">//the usage frequency exceeds threshold frequency</span>
+    <strong class="hl-keyword">static</strong> <strong class="hl-keyword">class</strong> UsageFrequencyCondition <strong class="hl-keyword">implements</strong> QueryCondition&lt;Text, IntWritable&gt;
+    {
+        <strong class="hl-keyword">private</strong> <strong class="hl-keyword">int</strong> frequency;
+
+        UsageFrequencyCondition(<strong class="hl-keyword">int</strong> frequency) {
+            <strong class="hl-keyword">this</strong>.frequency = frequency;
+        }
+
+        <em><span class="hl-annotation" style="color: gray">@Override</span></em>
+        <strong class="hl-keyword">public</strong> <strong class="hl-keyword">boolean</strong> check(Text key, IntWritable value) <strong class="hl-keyword">throws</strong> InvokeException {
+            <strong class="hl-keyword">return</strong> value.get() &gt; frequency;
+        }
+    }
+}</pre>
+            </div><script type="text/javascript" src="../common/main.js">
+            <!----></script></div>
+      <div id="sidebar">
+         <div id="leftnavigation" style="padding-top:3px;">
+            <div id="tabs">
+               <ul>
+                  <li><a href="#treeDiv" style="outline:0;" tabindex="1"><span class="contentsTab">Contents</span></a></li>
+                  <li><a href="#searchDiv" style="outline:0;" tabindex="1" onclick="doSearch()"><span class="searchTab">Search</span></a></li>
+               </ul>
+               <div id="treeDiv"><img src="../common/images/loading.gif" alt="loading table of contents..." id="tocLoading" style="display:block;" /><div id="ulTreeDiv" style="display:none">
+                     <ul id="tree" class="filetree">
+                        <li><span class="file"><a href="index.html#install" tabindex="1">Installation of the IMDG</a></span><ul>
+                              <li><span class="file"><a href="index.html#_support_for_multiple_hadoop_distributions" tabindex="1">Support for Multiple Hadoop Distributions</a></span></li>
+                           </ul>
+                        </li>
+                        <li><span class="file"><a href="_running_hadoop_mapreduce_jobs_with_scaleout_hserver.html" tabindex="1">Running Hadoop MapReduce jobs with ScaleOut hServer</a></span><ul>
+                              <li><span class="file"><a href="_running_hadoop_mapreduce_jobs_with_scaleout_hserver.html#_requirements" tabindex="1">Requirements</a></span></li>
+                              <li><span class="file"><a href="_configuring_the_imdg_to_run_mapreduce_jobs.html" tabindex="1">Configuring the IMDG to run MapReduce jobs</a></span></li>
+                              <li><span class="file"><a href="_submitting_mapreduce_jobs_to_scaleout_hserver.html" tabindex="1">Submitting MapReduce jobs to ScaleOut hServer</a></span><ul>
+                                    <li><span class="file"><a href="_submitting_mapreduce_jobs_to_scaleout_hserver.html#run-cli-java" tabindex="1">Running MapReduce jobs from the command line (without a Hadoop distribution installed)</a></span></li>
+                                    <li><span class="file"><a href="_submitting_mapreduce_jobs_to_scaleout_hserver.html#run-cli-hadoop" tabindex="1">Running a MapReduce Job from the Hadoop Command Line</a></span></li>
+                                 </ul>
+                              </li>
+                              <li><span class="file"><a href="yarn.html" tabindex="1">Running existing Hadoop applications</a></span></li>
+                              <li><span class="file"><a href="_explicitly_specifying_the_invocation_grid.html" tabindex="1">Explicitly specifying the invocation grid</a></span></li>
+                              <li><span class="file"><a href="_passing_parameters_to_mappers_and_reducers.html" tabindex="1">Passing parameters to mappers and reducers</a></span></li>
+                              <li><span class="file"><a href="_single_result_optimization.html" tabindex="1">Single result optimization</a></span></li>
+                           </ul>
+                        </li>
+                        <li><span class="file"><a href="_storing_input_output_data_sets_in_the_imdg.html" tabindex="1">Storing input/output data sets in the IMDG</a></span><ul>
+                              <li><span class="file"><a href="_storing_input_output_data_sets_in_the_imdg.html#_namedmap_feature_overview" tabindex="1">NamedMap feature overview</a></span></li>
+                              <li><span class="file"><a href="_the_namedmapinputformat.html" tabindex="1">The NamedMapInputFormat</a></span></li>
+                              <li><span class="file"><a href="_the_namedcacheinputformat.html" tabindex="1">The NamedCacheInputFormat</a></span></li>
+                              <li><span class="file"><a href="_the_gridoutputformat.html" tabindex="1">The GridOutputFormat</a></span><ul>
+                                    <li><span class="file"><a href="_the_gridoutputformat.html#_using_a_namedmap_for_output" tabindex="1">Using a NamedMap for Output</a></span></li>
+                                    <li><span class="file"><a href="_the_gridoutputformat.html#_using_a_namedcache_for_output" tabindex="1">Using a NamedCache for Output</a></span></li>
+                                 </ul>
+                              </li>
+                              <li><span class="file"><a href="_using_the_imdg_8217_s_namedmap_namedcache_with_writables.html" tabindex="1">Using the IMDG’s NamedMap/NamedCache with Writables</a></span></li>
+                              <li><span class="file"><a href="_parallel_method_invocations_and_queries_on_the_namedmap.html" tabindex="1">Parallel Method Invocations and Queries on the NamedMap</a></span></li>
+                              <li id="webhelp-currentid"><span class="file"><a href="_sample_program_modified_wordcount_example.html" tabindex="1">Sample Program: Modified WordCount example</a></span></li>
+                           </ul>
+                        </li>
+                        <li><span class="file"><a href="_using_scaleout_hserver_as_an_hdfs_cache.html" tabindex="1">Using ScaleOut hServer as an HDFS Cache</a></span><ul>
+                              <li><span class="file"><a href="_using_scaleout_hserver_as_an_hdfs_cache.html#_dataset_input_format" tabindex="1">Dataset Input Format</a></span></li>
+                              <li><span class="file"><a href="_handling_modifications_to_the_input_files.html" tabindex="1">Handling Modifications to the Input Files</a></span></li>
+                              <li><span class="file"><a href="_dataset_input_format_optimization_for_emphasis_text_emphasis_key_value_pairs_of_known_length.html" tabindex="1">Dataset Input Format Optimization for Text Key/Value Pairs of Known Length</a></span></li>
+                              <li><span class="file"><a href="_memory_usage.html" tabindex="1">Memory Usage</a></span></li>
+                              <li><span class="file"><a href="_managing_cached_data_sets_in_the_imdg.html" tabindex="1">Managing Cached Data Sets in the IMDG</a></span></li>
+                              <li><span class="file"><a href="_performance_optimizations_in_the_dataset_record_reader.html" tabindex="1">Performance Optimizations in the Dataset Record Reader</a></span></li>
+                           </ul>
+                        </li>
+                        <li><span class="file"><a href="hive.html" tabindex="1">Running Apache Hive on hServer</a></span></li>
+                        <li><span class="file"><a href="_querying_a_namedmap_with_apache_hive.html" tabindex="1">Querying a NamedMap with Apache Hive</a></span><ul>
+                              <li><span class="file"><a href="_querying_a_namedmap_with_apache_hive.html#_example_shopping_cart" tabindex="1">Example: Shopping Cart</a></span></li>
+                              <li><span class="file"><a href="customserializer.html" tabindex="1">Creating a table view of NamedMap with custom serialization</a></span></li>
+                           </ul>
+                        </li>
+                     </ul>
+                  </div>
+               </div>
+               <div id="searchDiv">
+                  <div id="search">
+                     <form onsubmit="Verifie(searchForm);return false" name="searchForm" class="searchForm">
+                        <fieldset class="searchFieldSet">
+                           <legend>Search</legend>
+                           <center><input id="textToSearch" name="textToSearch" type="search" class="searchText" tabindex="1" /> &nbsp; <input onclick="Verifie(searchForm)" type="button" class="searchButton" value="Go" id="doSearch" tabindex="1" /></center>
+                        </fieldset>
+                     </form>
+                  </div>
+                  <div id="searchResults">
+                     <center></center>
+                  </div>
+                  <p class="searchHighlight"><a href="#" onclick="toggleHighlight()">Search Highlighter (On/Off)</a></p>
+               </div>
+            </div>
+         </div>
+      </div>
+   </body>
+</html>

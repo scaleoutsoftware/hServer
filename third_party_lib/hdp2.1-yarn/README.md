@@ -1,0 +1,1 @@
+Container directory for Hortonwork Data Platform 2.1's third-party JARs.

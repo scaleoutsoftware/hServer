@@ -1,0 +1,1 @@
+Container directory for ScaleOut hServer's build output with support for Cloudera's Distribution of Apache Hadoop version 5.0.2 (with YARN support).
