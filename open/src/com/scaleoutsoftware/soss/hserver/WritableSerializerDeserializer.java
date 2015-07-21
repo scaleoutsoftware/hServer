@@ -15,9 +15,12 @@
 */
 package com.scaleoutsoftware.soss.hserver;
 
+import com.scaleoutsoftware.soss.client.CustomSerializer;
 import com.scaleoutsoftware.soss.hserver.interop.SerializerDeserializer;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.util.ReflectionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -32,11 +35,15 @@ public class WritableSerializerDeserializer<T> extends SerializerDeserializer<T>
      *
      * @param objectType type of the objects for serialization/deserialization
      */
-    public WritableSerializerDeserializer(Class<T> objectType) {
-        super(objectType);
-        isWritable = Writable.class.isAssignableFrom(objectType);
-        if (isWritable) {
-            object = ReflectionUtils.newInstance(objectType, null);
+    public WritableSerializerDeserializer(Class<T> objectType, CustomSerializer<T> serializer) {
+        super(objectType, serializer);
+        if(objectType != null) {
+            isWritable = Writable.class.isAssignableFrom(objectType);
+            if (isWritable) {
+                object = ReflectionUtils.newInstance(objectType, null);
+            }
+        } else {
+            isWritable = false;
         }
     }
 

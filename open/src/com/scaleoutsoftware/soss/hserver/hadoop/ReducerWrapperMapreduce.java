@@ -41,14 +41,14 @@ public class ReducerWrapperMapreduce<INKEY, INVALUE, OUTKEY, OUTVALUE> implement
     private final org.apache.hadoop.mapreduce.TaskAttemptContext taskContext;
     private final HadoopVersionSpecificCode hadoopVersionSpecificCode;
     protected Method reduceMethod;
-    private InvocationParameters invocationParameters;
+    private HServerInvocationParameters invocationParameters;
 
 
-    public ReducerWrapperMapreduce(InvocationParameters invocationParameters, int hadoopPartition, int appId, int region, boolean sort) throws IOException, ClassNotFoundException, InterruptedException {
+    public ReducerWrapperMapreduce(HServerInvocationParameters invocationParameters, int hadoopPartition, int appId, int region, boolean sort) throws IOException, ClassNotFoundException, InterruptedException {
         this.invocationParameters = invocationParameters;
-        Configuration configuration = invocationParameters.getConfiguration();
+        Configuration configuration = (Configuration)invocationParameters.getConfiguration();
         hadoopVersionSpecificCode = HadoopVersionSpecificCode.getInstance(invocationParameters.getHadoopVersion(), configuration);
-        JobID jobID = invocationParameters.getJobId();
+        JobID jobID = (JobID)invocationParameters.getJobId();
 
         //Setup task ID info
         TaskAttemptID id = hadoopVersionSpecificCode.createTaskAttemptId(jobID, false, hadoopPartition);
@@ -69,10 +69,10 @@ public class ReducerWrapperMapreduce<INKEY, INVALUE, OUTKEY, OUTVALUE> implement
         committer.setupTask(taskContext);
 
         Class<INKEY> keyClass = (Class<INKEY>) jobContext.getMapOutputKeyClass();
-        WritableSerializerDeserializer<INKEY> firstKeySerializer = new WritableSerializerDeserializer<INKEY>(keyClass);
-        WritableSerializerDeserializer<INKEY> secondKeySerializer = new WritableSerializerDeserializer<INKEY>(keyClass);
+        WritableSerializerDeserializer<INKEY> firstKeySerializer = new WritableSerializerDeserializer<INKEY>(keyClass, null);
+        WritableSerializerDeserializer<INKEY> secondKeySerializer = new WritableSerializerDeserializer<INKEY>(keyClass, null);
         Class<INVALUE> valueClass = (Class<INVALUE>) jobContext.getMapOutputValueClass();
-        WritableSerializerDeserializer<INVALUE> valueSerializer = new WritableSerializerDeserializer<INVALUE>(valueClass);
+        WritableSerializerDeserializer<INVALUE> valueSerializer = new WritableSerializerDeserializer<INVALUE>(valueClass, null);
 
         DataGridReaderParameters<INKEY,INVALUE> params = new DataGridReaderParameters<INKEY, INVALUE>(
                 region,
@@ -80,6 +80,7 @@ public class ReducerWrapperMapreduce<INKEY, INVALUE, OUTKEY, OUTVALUE> implement
                 HServerParameters.getSetting(REDUCE_USEMEMORYMAPPEDFILES, configuration) > 0,
                 firstKeySerializer,
                 valueSerializer,
+                invocationParameters.getSerializationMode(),
                 secondKeySerializer,
                 keyClass,
                 valueClass,
@@ -109,10 +110,10 @@ public class ReducerWrapperMapreduce<INKEY, INVALUE, OUTKEY, OUTVALUE> implement
     }
 
 
-    public ReducerWrapperMapreduce(InvocationParameters invocationParameters, MapOutputAccumulator<OUTKEY, OUTVALUE> consumer, Class<? extends org.apache.hadoop.mapreduce.Reducer> combinerClass) throws IOException, ClassNotFoundException, InterruptedException {
-        Configuration configuration = invocationParameters.getConfiguration();
+    public ReducerWrapperMapreduce(HServerInvocationParameters invocationParameters, MapOutputAccumulator<OUTKEY, OUTVALUE> consumer, Class<? extends org.apache.hadoop.mapreduce.Reducer> combinerClass) throws IOException, ClassNotFoundException, InterruptedException {
+        Configuration configuration = (Configuration)invocationParameters.getConfiguration();
         hadoopVersionSpecificCode = HadoopVersionSpecificCode.getInstance(invocationParameters.getHadoopVersion(), configuration);
-        JobID jobID = invocationParameters.getJobId();
+        JobID jobID = (JobID)invocationParameters.getJobId();
 
         //Setup task ID info
         TaskAttemptID id = hadoopVersionSpecificCode.createTaskAttemptId(jobID, false, 0);

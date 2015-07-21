@@ -33,8 +33,9 @@ import java.io.IOException;
 public abstract class MapOutputAccumulator<K, V>   {
     protected final PartitionerWrapper<K, V> partitionerWrapper;
     protected final int numberPartitions;
-    protected PartitionWriters<K, V> partitions;
+    protected PartitionWriters partitions;
     protected DataGridWriterParameters<K,V> gridWriterParameters = null;
+    private final Object _partitionWriterLock = new Object();
 
 
     /**

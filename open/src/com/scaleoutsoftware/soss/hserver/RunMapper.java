@@ -31,6 +31,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 
+
 import java.io.IOException;
 import java.net.InetAddress;
 import java.util.*;
@@ -38,8 +39,8 @@ import java.util.concurrent.*;
 
 import static com.scaleoutsoftware.soss.hserver.HServerParameters.*;
 
-class RunMapper<INKEY, INVALUE, OUTKEY, OUTVALUE> {
-    private static Log _logger = LogFactory.getLog(RunMapper.class);
+public class RunMapper<INKEY, INVALUE, OUTKEY, OUTVALUE> {
+    protected static Log _logger = LogFactory.getLog(RunMapper.class);
 
     private final Configuration configuration;
     private final ArrayBlockingQueue<Integer> splitIndexesForThisHost;
@@ -50,7 +51,8 @@ class RunMapper<INKEY, INVALUE, OUTKEY, OUTVALUE> {
     private final RunHadoopMapContext<OUTKEY, OUTVALUE> runMapContext;
     private final MapperWrapper<INKEY, INVALUE, OUTKEY, OUTVALUE> mapperWrapper;
     private final List<?> inputSplitList;
-    private final InvocationParameters invocationParameters;
+    private final HServerInvocationParameters invocationParameters;
+
 
 
     //LRU map for the combiners, so they will not hang in memory indefinitely.
@@ -79,7 +81,7 @@ class RunMapper<INKEY, INVALUE, OUTKEY, OUTVALUE> {
 
 
     @SuppressWarnings("unchecked")
-    RunMapper(InvocationParameters invocationParameters) throws IOException, ClassNotFoundException, NoSuchMethodException {
+    public RunMapper(HServerInvocationParameters invocationParameters) throws IOException, ClassNotFoundException, NoSuchMethodException {
         _logger.debug("Starting mapper. Parameters: " + invocationParameters);
 
         this.invocationParameters = invocationParameters;
@@ -90,12 +92,13 @@ class RunMapper<INKEY, INVALUE, OUTKEY, OUTVALUE> {
             mapperWrapper = new MapperWrapperMapreduce<INKEY, INVALUE, OUTKEY, OUTVALUE>(invocationParameters);
         }
 
-        configuration = invocationParameters.getConfiguration();
+        configuration = (Configuration)invocationParameters.getConfiguration();
         invocationId = invocationParameters.getAppId();
 
         //This happens under _jobLock, so we wont interfere with the running tasks
 
-        runMapContext = new RunHadoopMapContext<OUTKEY, OUTVALUE>(invocationParameters.getHadoopPartitionToSossRegionMapping(),
+        runMapContext = new RunHadoopMapContext<OUTKEY, OUTVALUE>(
+                invocationParameters.getHadoopPartitionToSossRegionMapping(),
                 invocationParameters.getAppId(),
                 HServerParameters.getSetting(MAP_OUTPUTCHUNKSIZE_KB, configuration),
                 HServerParameters.getSetting(MAP_HASHTABLESIZE, configuration),
@@ -115,8 +118,7 @@ class RunMapper<INKEY, INVALUE, OUTKEY, OUTVALUE> {
         List<Integer> splitIndexList = null;
         for (InetAddress address : NetUtils.getLocalInterfaces()) {
             splitIndexList = ((InvocationParameters<?>) invocationParameters).getInputSplitAssignment().get(address);
-            if (splitIndexList != null){
-
+            if (splitIndexList != null) {
                 //Handle the workload sharing between multiple JVMs
                 //We assume that split list for the IP comes to each JVM in the same order
                 if (InvocationWorker.getNumberOfWorkers() > 1) {
@@ -135,7 +137,6 @@ class RunMapper<INKEY, INVALUE, OUTKEY, OUTVALUE> {
                 break;
             }
         }
-
 
         if (splitIndexList != null && splitIndexList.size()>0) {  //We found our split list
             numberOfSplits = splitIndexList.size();
@@ -175,7 +176,6 @@ class RunMapper<INKEY, INVALUE, OUTKEY, OUTVALUE> {
 
         OUTVALUE optimisationResult = null;  //this will use the result in case of single result optimisation
 
-
         if (mapperWrapper.hasCombiner()) //Do a merge tree
         {
             WrappingMapOutputAccumulator finalCombiner = (new MergeTree<WrappingMapOutputAccumulator<OUTKEY, OUTVALUE>>(numberOfWorkers) {
@@ -203,17 +203,16 @@ class RunMapper<INKEY, INVALUE, OUTKEY, OUTVALUE> {
             for (int i = 0; i < numberOfWorkers; i++) {
                 futures.add(taskExecutor.submit(new Callable<Object>() {
                     @Override
-                    public Object call() throws Exception {
-                        MapOutputAccumulator combiner = runSlot();
-                        combiner.close();
-                        return null;
+                    public MapOutputAccumulator call() throws Exception {
+                        return runSlot();
                     }
                 }));
             }
+            MapOutputAccumulator combiner = null;
             for (Future future : futures) {
-                future.get();
+                combiner = (MapOutputAccumulator)future.get();
             }
-
+            combiner.close();
         }
 
         //There will be no reduce phase, cleanup now
@@ -225,11 +224,11 @@ class RunMapper<INKEY, INVALUE, OUTKEY, OUTVALUE> {
         return new MapperResult<OUTVALUE>(invocationId, optimisationResult, optimisationResult != null ? runMapContext.getValueClass() : null, numberOfSplits, System.currentTimeMillis() - timeStarted);
     }
 
-    public static class MapperInvokable implements Invokable<Integer, InvocationParameters, MapperResult> {
+    public static class MapperInvokable implements Invokable<Integer, HServerInvocationParameters, MapperResult> {
         private final static Object _jobLock = new Object(); //Allow only one job to run at a time
 
         @Override
-        public MapperResult eval(Integer integer, InvocationParameters invocationParameters, EvalArgs<Integer> integerEvalArgs) throws InvokeException, InterruptedException {
+        public MapperResult eval(Integer integer, HServerInvocationParameters invocationParameters, EvalArgs<Integer> integerEvalArgs) throws InvokeException, InterruptedException {
             try {
                 synchronized (_jobLock) {
                     RunMapper runMapper = new RunMapper(invocationParameters);
@@ -248,7 +247,6 @@ class RunMapper<INKEY, INVALUE, OUTKEY, OUTVALUE> {
             } catch (IOException e) {
                 throw new InvokeException("Cannot merge results.", e);
             }
-
         }
     }
 
@@ -269,8 +267,9 @@ class RunMapper<INKEY, INVALUE, OUTKEY, OUTVALUE> {
                         -1, // unknown
                         runMapContext.getInvocationId(),
                         false,
-                        new WritableSerializerDeserializer<OUTKEY>(runMapContext.getKeyClass()),
-                        new WritableSerializerDeserializer<OUTVALUE>(runMapContext.getValueClass()),
+                        new WritableSerializerDeserializer<OUTKEY>(runMapContext.getKeyClass(), null),
+                        new WritableSerializerDeserializer<OUTVALUE>(runMapContext.getValueClass(), null),
+                        invocationParameters.getSerializationMode(),
                         runMapContext,
                         -1 // unknown
                 );
@@ -283,11 +282,12 @@ class RunMapper<INKEY, INVALUE, OUTKEY, OUTVALUE> {
                     -1, // unknown
                     runMapContext.getInvocationId(),
                     false,
-                    new WritableSerializerDeserializer<OUTKEY>(runMapContext.getKeyClass()),
-                    new WritableSerializerDeserializer<OUTVALUE>(runMapContext.getValueClass()),
+                    new WritableSerializerDeserializer<OUTKEY>(runMapContext.getKeyClass(), null),
+                    new WritableSerializerDeserializer<OUTVALUE>(runMapContext.getValueClass(), null),
+                    invocationParameters.getSerializationMode(),
                     runMapContext,
                     -1 // unknown
-                    );
+            );
             combiner = new PassthruMapOutputAccumulator<OUTKEY, OUTVALUE>(params);
         }
         Integer splitIndex;

@@ -21,6 +21,7 @@ import com.scaleoutsoftware.soss.hserver.interop.DataGridChunkedCollectionReader
 import com.scaleoutsoftware.soss.hserver.interop.DataGridReaderParameters;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.mapred.*;
 import org.apache.hadoop.util.ReflectionUtils;
@@ -36,8 +37,7 @@ import static com.scaleoutsoftware.soss.hserver.HServerParameters.*;
  * This class contains the access layer for the {@link Reducer}.
  */
 public class ReducerWrapperMapred<INKEY, INVALUE, OUTKEY, OUTVALUE> implements ReducerWrapper<INKEY, INVALUE, OUTKEY, OUTVALUE> {
-    public static final Log LOG =
-            LogFactory.getLog(MapperWrapperMapred.class);
+    public static final Log LOG = LogFactory.getLog(MapperWrapperMapred.class);
 
 
     //---------------------------------------------------------------------------------
@@ -62,11 +62,11 @@ public class ReducerWrapperMapred<INKEY, INVALUE, OUTKEY, OUTVALUE> implements R
     private InvocationParameters invocationParameters;
 
 
-    public ReducerWrapperMapred(InvocationParameters invocationParameters, int hadoopPartition, int appId, int region, boolean sort) throws IOException, ClassNotFoundException, InterruptedException {
+    public ReducerWrapperMapred(HServerInvocationParameters invocationParameters, int hadoopPartition, int appId, int region, boolean sort) throws IOException, ClassNotFoundException, InterruptedException {
         this.invocationParameters = invocationParameters;
-        JobConf jobConf = new JobConf(invocationParameters.getConfiguration());  //Clone JobConf, so the temporary settings do not pollute other tasks
+        JobConf jobConf = new JobConf((Configuration)invocationParameters.getConfiguration());  //Clone JobConf, so the temporary settings do not pollute other tasks
 
-        LOG.info("Starting reducer:"+InvocationParameters.dumpConfiguration(jobConf));
+        LOG.info("Starting reducer:"+HadoopInvocationParameters.dumpConfiguration(jobConf));
 
         JobID jobID = (JobID) invocationParameters.getJobId();
         this.hadoopPartition = hadoopPartition;
@@ -106,10 +106,10 @@ public class ReducerWrapperMapred<INKEY, INVALUE, OUTKEY, OUTVALUE> implements R
         committer.setupTask(context);
 
         Class<INKEY> keyClass = (Class<INKEY>) jobConf.getMapOutputKeyClass();
-        WritableSerializerDeserializer<INKEY> firstKeySerializer = new WritableSerializerDeserializer<INKEY>(keyClass);
-        WritableSerializerDeserializer<INKEY> secondKeySerializer = new WritableSerializerDeserializer<INKEY>(keyClass);
+        WritableSerializerDeserializer<INKEY> firstKeySerializer = new WritableSerializerDeserializer<INKEY>(keyClass, null);
+        WritableSerializerDeserializer<INKEY> secondKeySerializer = new WritableSerializerDeserializer<INKEY>(keyClass, null);
         Class<INVALUE> valueClass = (Class<INVALUE>) jobConf.getMapOutputValueClass();
-        WritableSerializerDeserializer<INVALUE> valueSerializer = new WritableSerializerDeserializer<INVALUE>(valueClass);
+        WritableSerializerDeserializer<INVALUE> valueSerializer = new WritableSerializerDeserializer<INVALUE>(valueClass, null);
 
         DataGridReaderParameters<INKEY,INVALUE> params = new DataGridReaderParameters<INKEY, INVALUE>(
                 region,
@@ -117,6 +117,7 @@ public class ReducerWrapperMapred<INKEY, INVALUE, OUTKEY, OUTVALUE> implements R
                 HServerParameters.getSetting(REDUCE_USEMEMORYMAPPEDFILES, jobConf) > 0,
                 firstKeySerializer,
                 valueSerializer,
+                invocationParameters.getSerializationMode(),
                 secondKeySerializer,
                 keyClass,
                 valueClass,
@@ -157,7 +158,7 @@ public class ReducerWrapperMapred<INKEY, INVALUE, OUTKEY, OUTVALUE> implements R
 
 
 
-    public ReducerWrapperMapred(InvocationParameters invocationParameters, final MapOutputAccumulator<OUTKEY, OUTVALUE> consumer, Class<? extends org.apache.hadoop.mapred.Reducer> combinerClass) throws IOException, ClassNotFoundException, InterruptedException {
+    public ReducerWrapperMapred(HServerInvocationParameters invocationParameters, final MapOutputAccumulator<OUTKEY, OUTVALUE> consumer, Class<? extends org.apache.hadoop.mapred.Reducer> combinerClass) throws IOException, ClassNotFoundException, InterruptedException {
         JobConf jobConf = (JobConf) invocationParameters.getConfiguration();
 
         reducer = (org.apache.hadoop.mapred.Reducer<INKEY, INVALUE, OUTKEY, OUTVALUE>)

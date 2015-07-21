@@ -30,7 +30,7 @@ import java.util.Map;
  * single result optimisation. In that case it will also
  * retrieve a combiner from the cache to merge the results together.
  */
-class MapperResult<OUTVALUE> implements Serializable {
+public class MapperResult<OUTVALUE> implements Serializable {
     private int invocationId;
     private Class<OUTVALUE> resultClass;
     private boolean hasResult = false;
@@ -47,6 +47,7 @@ class MapperResult<OUTVALUE> implements Serializable {
      * @param result                  result object
      * @param resultClass             result type
      * @param numberOfSplitsProcessed number of splits processed in the mapper
+	 * @param processingTime		  processing time spent in the mapper
      * @throws IOException if result serialization failed
      */
     public MapperResult(int invocationId, OUTVALUE result, Class<OUTVALUE> resultClass, int numberOfSplitsProcessed, long processingTime) throws IOException {
@@ -122,7 +123,7 @@ class MapperResult<OUTVALUE> implements Serializable {
     private void updateSerializedResult() throws IOException {
         if (hasResult) {
             if (serializerDeserializer == null) {
-                serializerDeserializer = new SerializerDeserializer<OUTVALUE>(resultClass);
+                serializerDeserializer = new SerializerDeserializer<OUTVALUE>(resultClass, null);
             }
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             serializerDeserializer.serialize(new DataOutputStream(out), result);
@@ -138,7 +139,7 @@ class MapperResult<OUTVALUE> implements Serializable {
     private void updateDeserializedResult() throws IOException {
         if (result == null) {
             if (serializerDeserializer == null) {
-                serializerDeserializer = new SerializerDeserializer<OUTVALUE>(resultClass);
+                serializerDeserializer = new SerializerDeserializer<OUTVALUE>(resultClass, null);
             }
             result = serializerDeserializer.deserialize(new DataInputStream(new ByteArrayInputStream(serializedResult)));
         }

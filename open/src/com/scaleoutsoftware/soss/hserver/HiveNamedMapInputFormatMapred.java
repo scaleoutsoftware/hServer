@@ -18,6 +18,7 @@ package com.scaleoutsoftware.soss.hserver;
 import com.scaleoutsoftware.soss.client.CustomSerializer;
 import com.scaleoutsoftware.soss.client.ObjectNotSupportedException;
 import com.scaleoutsoftware.soss.client.map.NamedMapFactory;
+import com.scaleoutsoftware.soss.client.util.SerializationMode;
 import com.scaleoutsoftware.soss.client.map.impl.DefaultSerializer;
 import com.scaleoutsoftware.soss.hserver.hive.HServerHiveStorageHandler;
 import org.apache.commons.logging.Log;
@@ -35,6 +36,8 @@ import java.io.OutputStream;
 import java.io.StringWriter;
 import java.util.Iterator;
 import java.util.List;
+
+import static com.scaleoutsoftware.soss.hserver.HServerParameters.SERIALIZATION_MODE;
 
 /**
  * Input format used by SOSS Hive storage handler.
@@ -108,7 +111,10 @@ public class HiveNamedMapInputFormatMapred extends HiveInputFormat<Text, Text> {
                 //Just use standard Java serialization
                 serializer = new DefaultSerializer();
             }
-            wrappedReader = new NamedMapInputFormatMapred.NamedMapRecordReaderMapred(inputSplit, configuration, mapId, new StubSerializer(), serializer);
+            int smOrdinal = configuration.getInt(SERIALIZATION_MODE, SerializationMode.DEFAULT.ordinal());
+            SerializationMode serializationMode = SerializationMode.values()[smOrdinal];
+
+            wrappedReader = new NamedMapInputFormatMapred.NamedMapRecordReaderMapred(inputSplit, configuration, mapId, new StubSerializer(), serializer, serializationMode);
         }
 
         @Override

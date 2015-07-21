@@ -16,6 +16,7 @@
 package com.scaleoutsoftware.soss.hserver.hadoop;
 
 
+import com.scaleoutsoftware.soss.hserver.HServerInvocationParameters;
 import com.scaleoutsoftware.soss.hserver.InvocationParameters;
 import com.scaleoutsoftware.soss.hserver.MapOutputAccumulator;
 import com.scaleoutsoftware.soss.hserver.RunHadoopMapContext;
@@ -47,7 +48,7 @@ public class MapperWrapperMapred<INKEY, INVALUE, OUTKEY, OUTVALUE> implements Ma
             LogFactory.getLog(MapperWrapperMapred.class);
 
     private final JobConf jobConf;
-    private final InvocationParameters invocationParameters;
+    private final HServerInvocationParameters invocationParameters;
     private final JobID jobId;
     private final JobContext jobContext;
     private final Class<? extends org.apache.hadoop.mapred.Reducer> combinerClass;
@@ -57,12 +58,12 @@ public class MapperWrapperMapred<INKEY, INVALUE, OUTKEY, OUTVALUE> implements Ma
     private final boolean mapOnlyJob;
 
 
-    public MapperWrapperMapred(InvocationParameters invocationParameters) throws IOException, ClassNotFoundException, NoSuchMethodException {
+    public MapperWrapperMapred(HServerInvocationParameters invocationParameters) throws IOException, ClassNotFoundException, NoSuchMethodException {
 
         this.invocationParameters = invocationParameters;
         jobConf = (JobConf) invocationParameters.getConfiguration();
 
-        LOG.info("Starting mapper:"+InvocationParameters.dumpConfiguration(jobConf));
+        LOG.info("Starting mapper:"+HadoopInvocationParameters.dumpConfiguration(jobConf));
 
         hadoopVersionSpecificCode = HadoopVersionSpecificCode.getInstance(invocationParameters.getHadoopVersion(), jobConf);
         hadoopVersionSpecificCode.onJobInitialize(invocationParameters);

@@ -18,8 +18,10 @@ package com.scaleoutsoftware.soss.hserver;
 import com.scaleoutsoftware.soss.client.*;
 import com.scaleoutsoftware.soss.client.da.DataAccessor;
 import com.scaleoutsoftware.soss.client.da.StateServerException;
+import com.scaleoutsoftware.soss.client.util.SerializationMode;
 import com.scaleoutsoftware.soss.client.pmi.MessagingHelper;
 import com.scaleoutsoftware.soss.client.util.BitConverter;
+import com.scaleoutsoftware.soss.hserver.hadoop.HadoopInvocationParameters;
 import com.scaleoutsoftware.soss.hserver.hadoop.HadoopVersionSpecificCode;
 import com.scaleoutsoftware.soss.hserver.interop.HServerConstants;
 import org.apache.commons.logging.Log;
@@ -236,8 +238,10 @@ public class JobScheduler {
             //Generating invocation parameters
             String hadoopVersion = VersionInfo.getVersion();
             Class<? extends InputSplit> splitType = splitList.size() > 0 ? splitList.get(0).getClass() : null;
-            InvocationParameters parameters = new InvocationParameters(job.getConfiguration(),
-                    job.getJobID(),
+
+            HadoopInvocationParameters hadoopParameters = new HadoopInvocationParameters(job.getConfiguration(), job.getJobID(), false);
+            HServerInvocationParameters parameters = new HServerInvocationParameters(
+                    hadoopParameters,
                     job.getAppId(),
                     new int[0],
                     hostNameToPartition,
@@ -247,9 +251,9 @@ public class JobScheduler {
                     splitToHostAddress,
                     true,
                     false,
-                    false,
                     hadoopVersion,
-                    job.getJobParameter());
+                    job.getJobParameter(),
+                    SerializationMode.DEFAULT);
 
             StringBuilder stringBuilder = new StringBuilder();
             stringBuilder.append("Splits created:\n");
@@ -348,8 +352,9 @@ public class JobScheduler {
             //Generating invocation parameters
             Class<? extends InputSplit> splitType = splitList.size() > 0 ? splitList.get(0).getClass() : null;
 
-            InvocationParameters parameters = new InvocationParameters(job.getConfiguration(),
-                    job.getJobID(),
+            HadoopInvocationParameters hadoopParameters = new HadoopInvocationParameters(job.getConfiguration(), job.getJobID(), false);
+            HServerInvocationParameters parameters = new HServerInvocationParameters(
+                    hadoopParameters,
                     job.getAppId(),
                     partitionMapping,
                     hostNameToPartition,
@@ -359,9 +364,9 @@ public class JobScheduler {
                     splitToHostAddress,
                     false,
                     job.getSortEnabled(),
-                    false,
                     hadoopVersion,
-                    job.getJobParameter());
+                    job.getJobParameter(),
+                    SerializationMode.DEFAULT);
 
 
             StringBuilder stringBuilder = new StringBuilder();
@@ -471,9 +476,9 @@ public class JobScheduler {
 
             int[] partitionMapping = hostNameToPartition.generateEvenItemDistribution(jobConf.getNumReduceTasks());
 
-            InvocationParameters parameters = new InvocationParameters(
-                    jobConf,
-                    jobID,
+            HadoopInvocationParameters hadoopParameters = new HadoopInvocationParameters(jobConf, jobID, !isNewApi);
+            HServerInvocationParameters parameters = new HServerInvocationParameters(
+                    hadoopParameters,
                     appID,
                     partitionMapping,
                     hostNameToPartition,
@@ -483,9 +488,9 @@ public class JobScheduler {
                     splitToHostAddress,
                     false,
                     HServerParameters.getBooleanSetting(HServerParameters.SORT_KEYS, jobConf),
-                    !isNewApi,
                     hadoopVersion,
-                    null);
+                    null,
+                    SerializationMode.DEFAULT);
 
 
             StringBuilder stringBuilder = new StringBuilder();
@@ -633,9 +638,10 @@ public class JobScheduler {
             //Generating invocation parameters
             Class<? extends org.apache.hadoop.mapred.InputSplit> splitType = splitList.size() > 0 ? splitList.get(0).getClass() : null;
 
+            HadoopInvocationParameters hadoopParameters = new HadoopInvocationParameters(job, jobId, true);
 
-            InvocationParameters<org.apache.hadoop.mapred.InputSplit> parameters = new InvocationParameters<org.apache.hadoop.mapred.InputSplit>(job,
-                    jobId,
+            HServerInvocationParameters<org.apache.hadoop.mapred.InputSplit> parameters = new HServerInvocationParameters<org.apache.hadoop.mapred.InputSplit>
+                    (hadoopParameters,
                     jobAppId,
                     partitionMapping,
                     hostNameToPartition,
@@ -645,9 +651,9 @@ public class JobScheduler {
                     splitToHostAddress,
                     false,
                     sortEnabled,
-                    true,
                     hadoopVersion,
-                    jobParameter);
+                    jobParameter,
+                    SerializationMode.DEFAULT);
 
 
             StringBuilder stringBuilder = new StringBuilder();

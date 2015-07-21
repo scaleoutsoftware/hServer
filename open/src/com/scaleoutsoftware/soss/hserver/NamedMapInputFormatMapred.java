@@ -19,6 +19,7 @@ package com.scaleoutsoftware.soss.hserver;
 import com.scaleoutsoftware.soss.client.CustomSerializer;
 import com.scaleoutsoftware.soss.client.map.NamedMap;
 
+import com.scaleoutsoftware.soss.client.util.SerializationMode;
 import com.scaleoutsoftware.soss.client.map.impl.ChunkBufferPool;
 import com.scaleoutsoftware.soss.client.map.impl.ChunkBufferPoolFactory;
 import com.scaleoutsoftware.soss.client.map.impl.ConcurrentMapReader;
@@ -30,9 +31,7 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 
-import static com.scaleoutsoftware.soss.hserver.HServerParameters.CM_CHUNKSTOREADAHEAD;
-import static com.scaleoutsoftware.soss.hserver.HServerParameters.CM_CHUNK_SIZE_KB;
-import static com.scaleoutsoftware.soss.hserver.HServerParameters.CM_USEMEMORYMAPPEDFILES;
+import static com.scaleoutsoftware.soss.hserver.HServerParameters.*;
 
 /**
  * This input format is used to read the input data from a {@link NamedMap}. The mapper will
@@ -48,7 +47,6 @@ public class NamedMapInputFormatMapred<K, V> implements InputFormat<K, V> {
     private static final String inputNamedMapValueProperty = "mapred.hserver.input.namedmapvalue";
     protected static final String inputAppIdProperty = "mapred.hserver.input.appId";
 
-
     /**
      * Sets {@link com.scaleoutsoftware.soss.client.map.NamedMap} as an input source for the job.
      *
@@ -63,6 +61,7 @@ public class NamedMapInputFormatMapred<K, V> implements InputFormat<K, V> {
         CustomSerializer<V> valueSerializer = map.getValueSerializer();
         configuration.setClass(inputNamedMapKeySerializerProperty, keySerializer.getClass(), Object.class);
         configuration.setClass(inputNamedMapValueSerializerProperty, valueSerializer.getClass(), Object.class);
+        configuration.setInt(SERIALIZATION_MODE, map.getSerializationMode().ordinal());
         if (keySerializer.getObjectClass() != null) {
             configuration.setClass(inputNamedMapKeyProperty, keySerializer.getObjectClass(), Object.class);
         }
@@ -114,7 +113,10 @@ public class NamedMapInputFormatMapred<K, V> implements InputFormat<K, V> {
         keySerializer.setObjectClass((Class<K>) configuration.getClass(inputNamedMapKeyProperty, null));
         CustomSerializer<V> valueSerializer = ReflectionUtils.newInstance(valueSerializerClass, configuration);
         valueSerializer.setObjectClass((Class<V>) configuration.getClass(inputNamedMapValueProperty, null));
-        return new NamedMapRecordReaderMapred(inputSplit, configuration, mapId, keySerializer, valueSerializer);
+        int smOrdinal = configuration.getInt(SERIALIZATION_MODE, SerializationMode.DEFAULT.ordinal());
+        SerializationMode serializationMode = SerializationMode.values()[smOrdinal];
+
+        return new NamedMapRecordReaderMapred(inputSplit, configuration, mapId, keySerializer, valueSerializer, serializationMode);
     }
 
     /**
@@ -128,7 +130,7 @@ public class NamedMapInputFormatMapred<K, V> implements InputFormat<K, V> {
         boolean readDone = false;
         boolean skipAdvance = false;
 
-        public NamedMapRecordReaderMapred(InputSplit inputSplit, Configuration configuration, int mapId, CustomSerializer<K> keySerializer, CustomSerializer<V> valueSerializer) throws IOException {
+        public NamedMapRecordReaderMapred(InputSplit inputSplit, Configuration configuration, int mapId, CustomSerializer<K> keySerializer, CustomSerializer<V> valueSerializer, SerializationMode serializationMode) throws IOException {
             int targetChunkSizeKb = HServerParameters.getSetting(CM_CHUNK_SIZE_KB, configuration);
             int chunksToReadAhead = HServerParameters.getSetting(CM_CHUNKSTOREADAHEAD, configuration);
             boolean useMemoryMappedFiles = HServerParameters.getSetting(CM_USEMEMORYMAPPEDFILES, configuration) > 0;
@@ -136,7 +138,7 @@ public class NamedMapInputFormatMapred<K, V> implements InputFormat<K, V> {
             //Intentionally use NamedMapInputFormat.class as identifier, so mapred and mapreduce can use the same buffer pool
             ChunkBufferPool bufferPool = ChunkBufferPoolFactory.createOrGetBufferPool(NamedMapInputFormat.class, chunksToReadAhead, targetChunkSizeKb*1024, useMemoryMappedFiles);
 
-            reader = new ConcurrentMapReader<K, V>(bufferPool, mapId, keySerializer, valueSerializer);
+            reader = new ConcurrentMapReader<K, V>(bufferPool, mapId, keySerializer, valueSerializer, serializationMode);
 
             if (!(inputSplit instanceof BucketSplitMapred)) {
                 throw new IOException("Unexpected split type: " + inputSplit);

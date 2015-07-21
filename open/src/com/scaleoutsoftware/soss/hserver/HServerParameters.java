@@ -16,6 +16,7 @@
 package com.scaleoutsoftware.soss.hserver;
 
 
+import com.scaleoutsoftware.soss.client.util.SerializationMode;
 import org.apache.hadoop.conf.Configuration;
 
 import java.util.HashMap;
@@ -50,6 +51,8 @@ public class HServerParameters {
     public final static String MAX_SLOTS = "mapred.hserver.maxslots"; //Maximum number of slots, 0 for no limit
     public final static String INVOCATION_ID = "mapred.hserver.invocationid";
 
+    public final static String SERIALIZATION_MODE = "mapred.hserver.setting.serialization.mode";
+
     private final static Map<String, Object> _defaults = new HashMap<String, Object>();
 
     static {
@@ -71,6 +74,7 @@ public class HServerParameters {
         _defaults.put(IS_HSERVER_JOB, false);
         _defaults.put(SORT_KEYS, true);
         _defaults.put(MAX_SLOTS, 0);
+        _defaults.put(SERIALIZATION_MODE, SerializationMode.DEFAULT.ordinal());
     }
 
     /**
@@ -84,6 +88,7 @@ public class HServerParameters {
         if (!_defaults.containsKey(name)) {
             throw new RuntimeException("Cannot find default value for property" + name);
         }
+        if(configuration == null) return (Integer)_defaults.get(name);
         return configuration.getInt(name, (Integer) _defaults.get(name));
     }
 

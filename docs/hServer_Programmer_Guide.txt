@@ -11,7 +11,7 @@ Using ScaleOut hServer, developers can write and run standard Hadoop MapReduce a
 
 Developers can use ScaleOut hServer's Java APIs footnote:[The ScaleOut StateServer Java API library (soss-jnc-5.2.jar) is licensed under the ScaleOut StateServer End User License Agreement.] to create, read, update, and delete objects within the IMDG. This enables MapReduce applications to input "live" data sets which are stored and updated within the IMDG. Complex IMDG-based objects can be stored within a _named cache_, which provides comprehensive semantics, such as object timeouts, dependency relationships, pessimistic locking, and access by remote IMDGs. These objects are input to MapReduce applications using the _Named Cache_ input format. Alternatively, large populations of small key/value pairs can be efficiently stored within a _named map_, which provides highly efficient memory usage and streamlined semantics following the Java concurrent map model. These objects can be input to MapReduce applications using the _Named Map_ input format. The _Grid_ output format can be used to output objects from MapReduce applications to a named cache or a named map.
 
-Note that some advanced features of the Java APIs, such as event handling, parallel query and parallel method invocation are only available under a full ScaleOut StateServer(R) or ScaleOut Analytics Server(R) license.
+Note that some advanced features of the Java APIs, such as event handling, parallel query and parallel method invocation are only available under a full ScaleOut StateServer(R) or ScaleOut ComputeServer(TM) license.
 
 This programming guide is intended to be a supplement to the Java API documentation and the ScaleOut StateServer (SOSS) Help File included with ScaleOut hServer. It focuses on the Java components used with Hadoop MapReduce applications.
 
@@ -289,6 +289,7 @@ $ hadoop jar hadoop-mapreduce-examples.jar wordcount -Dmapreduce.framework.name=
 [NOTE]
 If output key sorting is not required for running a MapReduce job, it can be disabled to improve performance and reduce memory usage. This can be done by setting the configuration property _mapred.hserver.sortkeys_ to _false_. This property is set to _true_ by default (output keys are sorted), which is analogous to standard Hadoop behavior.
 
+[[hserver-ig]]
 Explicitly specifying the invocation grid
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

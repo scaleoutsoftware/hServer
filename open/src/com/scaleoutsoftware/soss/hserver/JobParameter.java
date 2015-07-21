@@ -34,6 +34,6 @@ public class JobParameter {
      * @throws IOException if a ScaleOut hServer access error occurred
      */
     public static Object get(Configuration configuration) throws IOException {
-        return InvocationParameters.retrieveFromCache(configuration.getInt(HServerParameters.INVOCATION_ID, 0)).getJobParameter();
+        return HServerInvocationParameters.retrieveFromCache(configuration.getInt(HServerParameters.INVOCATION_ID, 0)).getJobParameter();
     }
 }

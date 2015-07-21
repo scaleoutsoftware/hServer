@@ -25,6 +25,7 @@ import com.scaleoutsoftware.soss.hserver.hadoop.HadoopVersionSpecificCode;
 import com.scaleoutsoftware.soss.hserver.hadoop.ReducerWrapper;
 import com.scaleoutsoftware.soss.hserver.hadoop.ReducerWrapperMapred;
 import com.scaleoutsoftware.soss.hserver.hadoop.ReducerWrapperMapreduce;
+import org.apache.hadoop.conf.Configuration;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -44,14 +45,14 @@ public class ReduceInvokable implements Invokable<Integer, Integer, Integer> {
     /**
      * Runs the reducer for a given partition.
      */
-    private static class ReduceTask implements Callable {
-        private int appId;
-        private int hadoopPartition;
-        private int sossPartition;
-        private Semaphore maxParallelTasks;
+    protected static class ReduceTask implements Callable {
+        protected int appId;
+        protected int hadoopPartition;
+        protected int sossPartition;
+        protected Semaphore maxParallelTasks;
 
 
-        private ReduceTask(int appId, int hadoopPartition, int sossPartition, Semaphore maxParallelTasks) {
+        protected ReduceTask(int appId, int hadoopPartition, int sossPartition, Semaphore maxParallelTasks) {
             this.appId = appId;
             this.hadoopPartition = hadoopPartition;
             this.sossPartition = sossPartition;
@@ -60,7 +61,7 @@ public class ReduceInvokable implements Invokable<Integer, Integer, Integer> {
 
         @Override
         public Object call() throws Exception {
-            InvocationParameters invocationParameters = InvocationParameters.retrieveFromCache(appId);
+            HServerInvocationParameters invocationParameters = HServerInvocationParameters.retrieveFromCache(appId);
 
             boolean sort = invocationParameters.isSortingEnabled();
 
@@ -83,9 +84,9 @@ public class ReduceInvokable implements Invokable<Integer, Integer, Integer> {
 
     @Override
     public Integer eval(Integer partition, final Integer appId, EvalArgs<Integer> serializableInputSplitEvalArgs) throws InvokeException, InterruptedException {
-        InvocationParameters invocationParameters;
+        HServerInvocationParameters invocationParameters;
         try {
-            invocationParameters = InvocationParameters.retrieveFromCache(appId);
+            invocationParameters = HServerInvocationParameters.retrieveFromCache(appId);
         } catch (IOException e) {
             throw new InvokeException("Cannot retrieve parameters for reduce.", e);
         }
@@ -127,8 +128,8 @@ public class ReduceInvokable implements Invokable<Integer, Integer, Integer> {
 
             Set<Future> reduceTasks = new HashSet<Future>();
 
-            //If there is a cap on maximum number of slots, apply it
-            int maxSlots = HServerParameters.getSetting(HServerParameters.MAX_SLOTS, invocationParameters.getConfiguration());
+            // If there is a cap on maximum number of slots, apply it
+            int maxSlots = HServerParameters.getSetting(HServerParameters.MAX_SLOTS, (Configuration)invocationParameters.getConfiguration());
             Semaphore maxParallelTasks = new Semaphore(maxSlots > 0 ? maxSlots : Integer.MAX_VALUE);
 
             for (Integer hadoopPartition : localHadoopPartitions) {
@@ -148,7 +149,7 @@ public class ReduceInvokable implements Invokable<Integer, Integer, Integer> {
         } finally {
             //Do the job cleanup on that host
             try {
-                HadoopVersionSpecificCode.getInstance(invocationParameters.getHadoopVersion(), invocationParameters.getConfiguration()).onJobDone(invocationParameters);
+                HadoopVersionSpecificCode.getInstance(invocationParameters.getHadoopVersion(), (Configuration)invocationParameters.getConfiguration()).onJobDone(invocationParameters);
             } catch (IOException e) {
                 throw new InvokeException("Cleanup failed.", e);
             }

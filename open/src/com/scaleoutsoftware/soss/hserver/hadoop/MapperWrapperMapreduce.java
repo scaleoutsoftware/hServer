@@ -16,6 +16,7 @@
 package com.scaleoutsoftware.soss.hserver.hadoop;
 
 
+import com.scaleoutsoftware.soss.hserver.HServerInvocationParameters;
 import com.scaleoutsoftware.soss.hserver.InvocationParameters;
 import com.scaleoutsoftware.soss.hserver.MapOutputAccumulator;
 import com.scaleoutsoftware.soss.hserver.RunHadoopMapContext;
@@ -34,7 +35,7 @@ import java.lang.reflect.Constructor;
  */
 public class MapperWrapperMapreduce<INKEY, INVALUE, OUTKEY, OUTVALUE> implements MapperWrapper<INKEY,INVALUE,OUTKEY,OUTVALUE> {
     private final Configuration configuration;
-    private final InvocationParameters invocationParameters;
+    private final HServerInvocationParameters invocationParameters;
     private final JobID jobId;
     private final JobContext jobContext;
     private final Class<? extends org.apache.hadoop.mapreduce.Reducer> combinerClass;
@@ -43,13 +44,13 @@ public class MapperWrapperMapreduce<INKEY, INVALUE, OUTKEY, OUTVALUE> implements
     private Class<? extends org.apache.hadoop.mapreduce.Partitioner> partitionerClass;
     private final boolean mapOnlyJob;
 
-    public MapperWrapperMapreduce(InvocationParameters invocationParameters) throws IOException, ClassNotFoundException, NoSuchMethodException {
+    public MapperWrapperMapreduce(HServerInvocationParameters invocationParameters) throws IOException, ClassNotFoundException, NoSuchMethodException {
         this.invocationParameters = invocationParameters;
-        configuration = invocationParameters.getConfiguration();
+        configuration = (Configuration)invocationParameters.getConfiguration();
         hadoopVersionSpecificCode = HadoopVersionSpecificCode.getInstance(invocationParameters.getHadoopVersion(), configuration);
         hadoopVersionSpecificCode.onJobInitialize(invocationParameters);
 
-        jobId = invocationParameters.getJobId();
+        jobId = (JobID)invocationParameters.getJobId();
 
         jobContext = hadoopVersionSpecificCode.createJobContext(new JobConf(configuration), jobId);
         combinerClass = jobContext.getCombinerClass();

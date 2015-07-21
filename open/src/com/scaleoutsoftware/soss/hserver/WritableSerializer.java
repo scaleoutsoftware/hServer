@@ -43,7 +43,7 @@ public class WritableSerializer<O extends Writable> extends CustomSerializer<O> 
     private int _size = -1;
 
     //Default constructor for instantiation by PMI.
-    WritableSerializer() {
+    public WritableSerializer() {
     }
 
     /**

@@ -15,7 +15,6 @@
 */
 package com.scaleoutsoftware.soss.hserver.hadoop;
 
-
 import com.scaleoutsoftware.soss.hserver.InvocationParameters;
 import com.scaleoutsoftware.soss.hserver.MapOutputAccumulator;
 import com.scaleoutsoftware.soss.hserver.interop.KeyValueProducer;
@@ -749,12 +748,12 @@ public class HadoopVersionSpecificCode_CDH5_YARN extends HadoopVersionSpecificCo
     @Override
     public void onJobInitialize(InvocationParameters parameters) throws IOException {
         //Take this chance to stub out ResourceCalculatorProcessTree
-        parameters.getConfiguration().setClass(MRConfig.RESOURCE_CALCULATOR_PROCESS_TREE, DummyResourceCalculatorProcessTree.class, ResourceCalculatorProcessTree.class);
+        parameters.getHadoopInvocationParameters().getConfiguration().setClass(MRConfig.RESOURCE_CALCULATOR_PROCESS_TREE, DummyResourceCalculatorProcessTree.class, ResourceCalculatorProcessTree.class);
 
         //Initialize the distributed cache
         DistributedCacheManager cacheManager = new DistributedCacheManager();
-        cacheManager.setup(parameters.getConfiguration());
-        distributedCaches.put(parameters.getJobId(), cacheManager);
+        cacheManager.setup(parameters.getHadoopInvocationParameters().getConfiguration());
+        distributedCaches.put(parameters.getHadoopInvocationParameters().getJobID(), cacheManager);
 
         super.onJobInitialize(parameters);
     }

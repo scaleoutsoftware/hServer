@@ -18,6 +18,7 @@ package com.scaleoutsoftware.soss.hserver;
 
 import com.scaleoutsoftware.soss.client.CustomSerializer;
 import com.scaleoutsoftware.soss.client.map.NamedMap;
+import com.scaleoutsoftware.soss.client.util.SerializationMode;
 import com.scaleoutsoftware.soss.client.map.impl.ChunkBufferPool;
 import com.scaleoutsoftware.soss.client.map.impl.ChunkBufferPoolFactory;
 import com.scaleoutsoftware.soss.client.map.impl.ConcurrentMapReader;
@@ -60,6 +61,8 @@ public class NamedMapInputFormat<K, V> extends GridInputFormat<K, V> {
         configuration.setInt(inputAppIdProperty, map.getMapId());
         CustomSerializer<K> keySerializer = map.getKeySerializer();
         CustomSerializer<V> valueSerializer = map.getValueSerializer();
+        SerializationMode serializationMode = map.getSerializationMode();
+        configuration.setInt(SERIALIZATION_MODE, serializationMode.ordinal());
         configuration.setClass(inputNamedMapKeySerializerProperty, keySerializer.getClass(), Object.class);
         configuration.setClass(inputNamedMapValueSerializerProperty, valueSerializer.getClass(), Object.class);
         if (keySerializer.getObjectClass() != null) {
@@ -68,6 +71,7 @@ public class NamedMapInputFormat<K, V> extends GridInputFormat<K, V> {
         if (valueSerializer.getObjectClass() != null) {
             configuration.setClass(inputNamedMapValueProperty, valueSerializer.getObjectClass(), Object.class);
         }
+
     }
 
 
@@ -75,12 +79,12 @@ public class NamedMapInputFormat<K, V> extends GridInputFormat<K, V> {
         private final ConcurrentMapReader<K, V> reader;
 
 
-        NamedMapReader(Configuration configuration, int mapId, CustomSerializer<K> keySerializer, CustomSerializer<V> valueSerializer) throws IOException {
+        NamedMapReader(Configuration configuration, int mapId, CustomSerializer<K> keySerializer, CustomSerializer<V> valueSerializer, SerializationMode serializationMode) throws IOException {
             int targetChunkSizeKb = HServerParameters.getSetting(CM_CHUNK_SIZE_KB, configuration);
             int chunksToReadAhead = HServerParameters.getSetting(CM_CHUNKSTOREADAHEAD, configuration);
             boolean useMemoryMappedFiles = HServerParameters.getSetting(CM_USEMEMORYMAPPEDFILES, configuration) > 0;
             ChunkBufferPool bufferPool = ChunkBufferPoolFactory.createOrGetBufferPool(NamedMapInputFormat.class, chunksToReadAhead, targetChunkSizeKb*1024, useMemoryMappedFiles);
-            reader = new ConcurrentMapReader<K, V>(bufferPool, mapId, keySerializer, valueSerializer);
+            reader = new ConcurrentMapReader<K, V>(bufferPool, mapId, keySerializer, valueSerializer, serializationMode);
         }
 
         @Override
@@ -144,6 +148,8 @@ public class NamedMapInputFormat<K, V> extends GridInputFormat<K, V> {
         keySerializer.setObjectClass((Class<K>) configuration.getClass(inputNamedMapKeyProperty, null));
         CustomSerializer<V> valueSerializer = ReflectionUtils.newInstance(valueSerializerClass, configuration);
         valueSerializer.setObjectClass((Class<V>) configuration.getClass(inputNamedMapValueProperty, null));
-        return new NamedMapReader<K, V>(configuration, mapId, keySerializer, valueSerializer);
+        int smOrdinal = configuration.getInt(SERIALIZATION_MODE, SerializationMode.DEFAULT.ordinal());
+        SerializationMode serializationMode = SerializationMode.values()[smOrdinal];
+        return new NamedMapReader<K, V>(configuration, mapId, keySerializer, valueSerializer, serializationMode);
     }
 }

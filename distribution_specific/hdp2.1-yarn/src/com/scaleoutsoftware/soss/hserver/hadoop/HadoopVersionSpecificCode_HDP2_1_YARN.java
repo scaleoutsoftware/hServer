@@ -747,12 +747,12 @@ public class HadoopVersionSpecificCode_HDP2_1_YARN extends HadoopVersionSpecific
     @Override
     public void onJobInitialize(InvocationParameters parameters) throws IOException {
         //Take this chance to stub out ResourceCalculatorProcessTree
-        parameters.getConfiguration().setClass(MRConfig.RESOURCE_CALCULATOR_PROCESS_TREE, DummyResourceCalculatorProcessTree.class, ResourceCalculatorProcessTree.class);
+        parameters.getHadoopInvocationParameters().getConfiguration().setClass(MRConfig.RESOURCE_CALCULATOR_PROCESS_TREE, DummyResourceCalculatorProcessTree.class, ResourceCalculatorProcessTree.class);
 
         //Initialize the distributed cache
         DistributedCacheManager cacheManager = new DistributedCacheManager();
-        cacheManager.setup(parameters.getConfiguration());
-        distributedCaches.put(parameters.getJobId(), cacheManager);
+        cacheManager.setup(parameters.getHadoopInvocationParameters().getConfiguration());
+        distributedCaches.put(parameters.getHadoopInvocationParameters().getJobID(), cacheManager);
 
         super.onJobInitialize(parameters);
     }

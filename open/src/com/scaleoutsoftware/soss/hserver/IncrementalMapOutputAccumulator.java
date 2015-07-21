@@ -15,10 +15,13 @@
 */
 package com.scaleoutsoftware.soss.hserver;
 
+import com.scaleoutsoftware.soss.client.NamedCache;
 import com.scaleoutsoftware.soss.hserver.interop.DataGridChunkedCollectionWriter;
 import com.scaleoutsoftware.soss.hserver.interop.DataGridWriterParameters;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Writable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -61,6 +64,8 @@ class IncrementalMapOutputAccumulator<K, V> extends WrappingMapOutputAccumulator
     private long size = 0;
 
     private final static int MEMORY_CHECK_FREQUENCY = 100000;
+
+    protected final Logger _logger = LoggerFactory.getLogger(IncrementalMapOutputAccumulator.class);
 
     /**
      * Constructs the combiner.
@@ -133,6 +138,7 @@ class IncrementalMapOutputAccumulator<K, V> extends WrappingMapOutputAccumulator
             if (lowMemory) {
                 int hadoopPartition = partitionerWrapper.getPartition(k,v);
                 gridWriterParameters.setHadoopPartition(hadoopPartition);
+                _logger.info("Low JVM Memory condition detected, putting Key/Value pairs directly into the servers.");
                 partitions.getGridWriter(gridWriterParameters).put(k, v);
             } else {
                 keyValueAccumulator.put(keyIsWritable ? (K) keyCopy.cloneObject((Writable) k) : k, valueIsWritable ? (V) valueCopy.cloneObject((Writable) v) : v);
@@ -147,6 +153,8 @@ class IncrementalMapOutputAccumulator<K, V> extends WrappingMapOutputAccumulator
             Map<K, V> otherMap = ((IncrementalMapOutputAccumulator<K, V>) anotherCombiner).keyValueAccumulator;
 
             for (Map.Entry<K, V> entry : otherMap.entrySet()) {
+                K k = entry.getKey();
+                V v = entry.getValue();
                 combine(entry.getKey(), entry.getValue());
             }
 
@@ -162,6 +170,7 @@ class IncrementalMapOutputAccumulator<K, V> extends WrappingMapOutputAccumulator
                 int hadoopPartition = partitionerWrapper.getPartition(key,value);
                 gridWriterParameters.setHadoopPartition(hadoopPartition);
                 DataGridChunkedCollectionWriter<K, V> transport = partitions.getGridWriter(gridWriterParameters);
+                _logger.info("Putting key (" + key + ") and value (" + value + ") into partition (" + gridWriterParameters.getRegion() + ").");
                 transport.put(key, value);
             }
         }

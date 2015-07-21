@@ -33,7 +33,7 @@ import java.lang.reflect.Constructor;
  * @param <T> object type
  */
 class CopyEngine<T extends Writable> {
-
+    private final static Configuration DUMMY_CONFIGURATION = new Configuration();
     private static final Class<?>[] EMPTY_ARRAY = new Class[]{};
 
     private Configuration configuration;
@@ -45,8 +45,9 @@ class CopyEngine<T extends Writable> {
      * Create the copy engine.
      */
     public CopyEngine(Class<? extends T> clazz, Configuration configuration) throws NoSuchMethodException {
-        this.configuration = configuration;
-        copy = WritableCopy.getForClass(clazz, configuration);
+        //We have to supply some configuration to avoid NullPointerException in org.apache.hadoop.io.serializer.SerializationFactory
+        this.configuration = configuration != null ? configuration : DUMMY_CONFIGURATION;
+        copy = WritableCopy.getForClass(clazz, this.configuration);
         constructor = clazz.getDeclaredConstructor(EMPTY_ARRAY);
         constructor.setAccessible(true);
         isConfigurable = Configurable.class.isAssignableFrom(clazz);
@@ -60,7 +61,7 @@ class CopyEngine<T extends Writable> {
      * @return cloned instance
      */
     T cloneObject(T orig) throws IOException {
-        if (orig == null){
+        if (orig == null) {
             return null;
         }
         T newInst = newInstance();
