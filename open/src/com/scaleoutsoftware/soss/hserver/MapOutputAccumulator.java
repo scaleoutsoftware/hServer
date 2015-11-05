@@ -35,8 +35,6 @@ public abstract class MapOutputAccumulator<K, V>   {
     protected final int numberPartitions;
     protected PartitionWriters partitions;
     protected DataGridWriterParameters<K,V> gridWriterParameters = null;
-    private final Object _partitionWriterLock = new Object();
-
 
     /**
      * Constructs the combiner, initializes the pool of data transports for partitions.

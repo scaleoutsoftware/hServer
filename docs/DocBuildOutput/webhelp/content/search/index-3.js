@@ -1,4 +1,5 @@
 //Auto generated index for searching by xsl-webhelpindexer for DocBook Webhelp.# Kasun Gajasinghe, University of Moratuwa
+w["outlin"]="15*1";
 w["output"]="3*4,4*2,14*4,15*6,16*8,17*49,18*4,19*79";
 w["outputdir"]="18*1";
 w["outputmap"]="15*6,19*2";
@@ -258,11 +259,11 @@ w["sorten"]="18*1";
 w["sortkey"]="4*3";
 w["soss"]="0*2,3*15,4*12,8*8,13*3,15*10,16*1,18*132";
 w["soss-5"]="3*1";
-w["soss-5.1.30-230.el6.x86_64.rpm"]="3*1";
+w["soss-5.4.1-253.el6.x86_64.rpm"]="3*1";
 w["soss-hserver-5"]="3*4";
-w["soss-hserver-5.2-"]="3*4";
+w["soss-hserver-5.4-"]="3*4";
 w["soss-jnc-5"]="3*4";
-w["soss-jnc-5.2.jar"]="3*4";
+w["soss-jnc-5.4.jar"]="3*4";
 w["soss5"]="3*3";
 w["soss_param"]="3*3,9*3,17*3";
 w["soss_params.txt"]="3*3,9*3,17*3";

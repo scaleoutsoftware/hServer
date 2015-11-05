@@ -16,9 +16,11 @@
 package com.scaleoutsoftware.soss.hserver;
 
 import com.scaleoutsoftware.soss.client.CustomSerializer;
+import com.scaleoutsoftware.soss.client.map.AvailabilityMode;
 import com.scaleoutsoftware.soss.client.map.BulkLoader;
 import com.scaleoutsoftware.soss.client.map.NamedMap;
 import com.scaleoutsoftware.soss.client.map.NamedMapFactory;
+import com.scaleoutsoftware.soss.client.util.SerializationMode;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.OutputFormat;
@@ -28,6 +30,9 @@ import org.apache.hadoop.util.Progressable;
 import org.apache.hadoop.util.ReflectionUtils;
 
 import java.io.IOException;
+
+import static com.scaleoutsoftware.soss.hserver.HServerParameters.AVAILABILITY_MODE;
+import static com.scaleoutsoftware.soss.hserver.HServerParameters.SERIALIZATION_MODE;
 
 /**
  * <p>
@@ -52,6 +57,10 @@ public class NamedMapOutputFormatMapred<K,V> implements OutputFormat<K,V> {
         String mapName = configuration.get(outputNamedMapProperty);
         Class<CustomSerializer<K>> keySerializerClass = (Class<CustomSerializer<K>>) configuration.getClass(outputNamedMapKeySerializerProperty, null);
         Class<CustomSerializer<V>> valueSerializerClass = (Class<CustomSerializer<V>>) configuration.getClass(outputNamedMapValueSerializerProperty, null);
+        int smOrdinal = configuration.getInt(SERIALIZATION_MODE, SerializationMode.DEFAULT.ordinal());
+        int amOrdinal = configuration.getInt(AVAILABILITY_MODE, AvailabilityMode.USE_REPLICAS.ordinal());
+        SerializationMode serializationMode = SerializationMode.values()[smOrdinal];
+        AvailabilityMode availabilityMode = AvailabilityMode.values()[amOrdinal];
 
         if (mapName == null || mapName.length() == 0 || keySerializerClass == null || valueSerializerClass == null) {
             throw new IOException("Input format is not configured with a valid NamedMap.");
@@ -62,6 +71,9 @@ public class NamedMapOutputFormatMapred<K,V> implements OutputFormat<K,V> {
         CustomSerializer<V> valueSerializer = ReflectionUtils.newInstance(valueSerializerClass, configuration);
         valueSerializer.setObjectClass((Class<V>) configuration.getClass(outputNamedMapValueProperty, null));
         NamedMap<K, V> namedMap = NamedMapFactory.getMap(mapName, keySerializer, valueSerializer);
+        namedMap.setAvailabilityMode(availabilityMode);
+        namedMap.setSerializationMode(serializationMode);
+
         return new NamedMapRecordWriter<K, V>(namedMap);
     }
 

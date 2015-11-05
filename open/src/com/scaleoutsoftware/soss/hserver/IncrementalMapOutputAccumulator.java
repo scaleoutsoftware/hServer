@@ -15,8 +15,6 @@
 */
 package com.scaleoutsoftware.soss.hserver;
 
-import com.scaleoutsoftware.soss.client.NamedCache;
-import com.scaleoutsoftware.soss.hserver.interop.DataGridChunkedCollectionWriter;
 import com.scaleoutsoftware.soss.hserver.interop.DataGridWriterParameters;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Writable;
@@ -153,8 +151,6 @@ class IncrementalMapOutputAccumulator<K, V> extends WrappingMapOutputAccumulator
             Map<K, V> otherMap = ((IncrementalMapOutputAccumulator<K, V>) anotherCombiner).keyValueAccumulator;
 
             for (Map.Entry<K, V> entry : otherMap.entrySet()) {
-                K k = entry.getKey();
-                V v = entry.getValue();
                 combine(entry.getKey(), entry.getValue());
             }
 
@@ -169,9 +165,7 @@ class IncrementalMapOutputAccumulator<K, V> extends WrappingMapOutputAccumulator
             if (value != null) {
                 int hadoopPartition = partitionerWrapper.getPartition(key,value);
                 gridWriterParameters.setHadoopPartition(hadoopPartition);
-                DataGridChunkedCollectionWriter<K, V> transport = partitions.getGridWriter(gridWriterParameters);
-                _logger.info("Putting key (" + key + ") and value (" + value + ") into partition (" + gridWriterParameters.getRegion() + ").");
-                transport.put(key, value);
+                partitions.getGridWriter(gridWriterParameters).put(key, value);
             }
         }
         partitions.close();

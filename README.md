@@ -4,7 +4,7 @@ ScaleOut hServer® is a MapReduce execution engine that runs on the [ScaleOut Sta
 
 Documentation
 =============
-The Javadoc for ScaleOut hServer can be found on our website under '[ScaleOut hServer V2 Documentation](http://www.scaleoutsoftware.com/support/stateServer/soss-hserver-5.2-javadoc/index.html)'. The `soss-jnc-5.2-javadoc.jar` JAR is also located on our website under '[API Documentation for ScaleOut StateServer and ScaleOut Analytics Server](http://www.scaleoutsoftware.com/support/stateServer/soss-jnc-5.2-javadoc/index.html)' and provides documentation for SOSS API usage. All additional ScaleOut hServer and ScaleOut StateServer documentation can be found on the ScaleOut Software Support website under [Product Documentation](http://www.scaleoutsoftware.com/support/product-documentation/ "ScaleOut Software Online Documentation").
+The Javadoc for ScaleOut hServer can be found on our website under '[ScaleOut hServer V2 Documentation](http://www.scaleoutsoftware.com/support/stateServer/soss-hserver-5.3-javadoc/index.html)'. The `soss-jnc-5.3-javadoc.jar` JAR is also located on our website under '[API Documentation for ScaleOut StateServer and ScaleOut Analytics Server](http://www.scaleoutsoftware.com/support/stateServer/soss-jnc-5.3-javadoc/index.html)' and provides documentation for SOSS API usage. All additional ScaleOut hServer and ScaleOut StateServer documentation can be found on the ScaleOut Software Support website under [Product Documentation](http://www.scaleoutsoftware.com/support/product-documentation/ "ScaleOut Software Online Documentation").
 
 Building
 ========
@@ -18,15 +18,15 @@ Prerequisites
 Linux
 -----
 - Clone the ScaleOut hServer project to a local directory.
-- Copy the SOSS Java Named Cache JAR (`soss-jnc-5.2.jar`) from the Linux installation Java API directory, (typically `/usr/local/soss/java_api/`) to the `soss_lib` subdirectory of the ScaleOut hServer source location.
-- Copy the third party library JARs from the Linux installation Java API lib directory, (typically `/usr/local/soss/java_api/lib`) to the `third_party_lib`  subdirectory of the ScaleOut hServer source location.
+- Copy the SOSS Java Named Cache JAR (`soss-jnc-5.3.jar`) from the Linux installation Java API directory, (typically `/usr/local/soss/java_api/`) to the `soss_lib` subdirectory of the ScaleOut hServer source location.
+- Copy the third party library JARs from the Linux installation Java API lib directories, (typically `/usr/local/soss/java_api/lib` and `/usr/local/soss/java_api/hslib`) to the `third_party_lib`  subdirectory of the ScaleOut hServer source location.
 - Download and copy the third party Hadoop distribution library JARs from our website under [Optional Downloads](http://www.scaleoutsoftware.com/support/support-downloads/optional-downloads/) to the appropriate subdirectory of the third_party_lib subdirectory of the ScaleOut hServer source location. For example, download the Apache Hadoop 2.4.1 JARs and copy them to the "/path/to/source/third_party_lib/hadoop-2.4.1/" directory.
 
 Windows
 -------
 - Clone the ScaleOut hServer project to a local directory.
-- Copy the SOSS Java Named Cache JAR (`soss-jnc-5.2.jar`) from the Windows installation Java API directory, (typically `C:\Program Files\ScaleOut_Software\StateServer\JavaAPI`) to the `soss_lib` subdirectory of the ScaleOut hServer source location.
-- Copy the third party library JARs from the Windows installation Java API lib directory, (typically `C:\Program Files\ScaleOut_Software\StateServer\JavaAPI\lib`) to the `third_party_lib` subdirectory of the ScaleOut hServer source location.
+- Copy the SOSS Java Named Cache JAR (`soss-jnc-5.3.jar`) from the Windows installation Java API directory, (typically `C:\Program Files\ScaleOut_Software\StateServer\JavaAPI`) to the `soss_lib` subdirectory of the ScaleOut hServer source location.
+- Copy the third party library JARs from the Windows installation Java API lib directory, (typically `C:\Program Files\ScaleOut_Software\StateServer\JavaAPI\lib` and `C:\Program Files\ScaleOut_Software\StateServer\JavaAPI\hslib`) to the `third_party_lib` subdirectory of the ScaleOut hServer source location.
 - Download and copy the third party Hadoop distribution library JARs from our website under [Optional Downloads](http://www.scaleoutsoftware.com/support/support-downloads/optional-downloads/) to the appropriate subdirectory of the third_party_lib subdirectory of the ScaleOut hServer source location. For example, download the Apache Hadoop 2.4.1 JARs and copy them to the "C:\path\to\source\third_party_lib\hadoop-2.4.1\" directory.
 
 

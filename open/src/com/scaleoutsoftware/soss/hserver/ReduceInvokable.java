@@ -67,15 +67,16 @@ public class ReduceInvokable implements Invokable<Integer, Integer, Integer> {
 
             ReducerWrapper reducer;
 
-            maxParallelTasks.acquire();
+
 
             if (invocationParameters.isOldApi()) {
                 reducer = new ReducerWrapperMapred(invocationParameters, hadoopPartition, appId, sossPartition, sort);
             } else {
                 reducer = new ReducerWrapperMapreduce(invocationParameters, hadoopPartition, appId, sossPartition, sort);
             }
-            reducer.runReducer();
 
+            maxParallelTasks.acquire();
+            reducer.runReducer();
             maxParallelTasks.release();
 
             return null;

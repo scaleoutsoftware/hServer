@@ -17,6 +17,7 @@ package com.scaleoutsoftware.soss.hserver;
 
 
 import com.scaleoutsoftware.soss.client.CustomSerializer;
+import com.scaleoutsoftware.soss.client.map.AvailabilityMode;
 import com.scaleoutsoftware.soss.client.map.NamedMap;
 import com.scaleoutsoftware.soss.client.util.SerializationMode;
 import com.scaleoutsoftware.soss.client.map.impl.ChunkBufferPool;
@@ -62,7 +63,9 @@ public class NamedMapInputFormat<K, V> extends GridInputFormat<K, V> {
         CustomSerializer<K> keySerializer = map.getKeySerializer();
         CustomSerializer<V> valueSerializer = map.getValueSerializer();
         SerializationMode serializationMode = map.getSerializationMode();
+        AvailabilityMode availabilityMode = map.getAvailabilityMode();
         configuration.setInt(SERIALIZATION_MODE, serializationMode.ordinal());
+        configuration.setInt(AVAILABILITY_MODE, availabilityMode.ordinal());
         configuration.setClass(inputNamedMapKeySerializerProperty, keySerializer.getClass(), Object.class);
         configuration.setClass(inputNamedMapValueSerializerProperty, valueSerializer.getClass(), Object.class);
         if (keySerializer.getObjectClass() != null) {

@@ -311,8 +311,7 @@ public class JobScheduler {
 
         try {
             //Check output specs before running the job
-            OutputFormat outputFormat =
-                    ReflectionUtils.newInstance(job.getOutputFormatClass(), job.getConfiguration());
+            OutputFormat outputFormat = ReflectionUtils.newInstance(job.getOutputFormatClass(), job.getConfiguration());
             outputFormat.checkOutputSpecs(job);
 
             org.apache.hadoop.mapreduce.OutputCommitter outputCommitter = createOutputCommitter(true, job.getJobID(), job.getConfiguration());

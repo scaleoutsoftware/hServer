@@ -16,6 +16,7 @@
 package com.scaleoutsoftware.soss.hserver;
 
 
+import com.scaleoutsoftware.soss.client.map.AvailabilityMode;
 import com.scaleoutsoftware.soss.client.util.SerializationMode;
 import org.apache.hadoop.conf.Configuration;
 
@@ -52,6 +53,7 @@ public class HServerParameters {
     public final static String INVOCATION_ID = "mapred.hserver.invocationid";
 
     public final static String SERIALIZATION_MODE = "mapred.hserver.setting.serialization.mode";
+    public final static String AVAILABILITY_MODE = "mapred.hserver.setting.availability.mode";
 
     private final static Map<String, Object> _defaults = new HashMap<String, Object>();
 
@@ -75,6 +77,7 @@ public class HServerParameters {
         _defaults.put(SORT_KEYS, true);
         _defaults.put(MAX_SLOTS, 0);
         _defaults.put(SERIALIZATION_MODE, SerializationMode.DEFAULT.ordinal());
+        _defaults.put(AVAILABILITY_MODE, AvailabilityMode.NO_REPLICAS.ordinal());
     }
 
     /**
